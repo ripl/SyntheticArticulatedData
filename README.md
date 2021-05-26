@@ -14,5 +14,8 @@ Example generation:
 Setup:
 ```pip install -r requirements-bullet.txt```
 
-Example generation:
+Example generation of images:
 ```python generate_data.py --n 10 --dir ./test --obj microwave --masked --debug --py-bullet```
+
+Example generation of videos:
+```python generate_data.py --n 10 --dir ./test --obj microwave --masked --debug --py-bullet --video```
