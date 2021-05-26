@@ -57,8 +57,13 @@ T_magic_to_cam = np.array([ [0. ,-1. , 0. , 0. ],
 # %%
 znear = 0.1
 zfar = 12
+
+
+# old ones
 sim_width = 192
 sim_height = 108
+
+
 # sim_width = 720 * 4
 # sim_height = 405 * 4
 

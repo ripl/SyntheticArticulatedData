@@ -39,7 +39,7 @@ def main(args):
 	scenegen.savedir = test_dir
 
 	# generate test scenes
-	scenegen.generate_scenes(int(args.n / 5), args.obj, test=True, video=args.video)
+	scenegen.generate_scenes(int(args.n / 10), args.obj, test=True, video=args.video)
 
 	# generate visualization for sanity
 	if not args.py_bullet and args.debug:

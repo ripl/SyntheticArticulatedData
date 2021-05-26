@@ -229,7 +229,7 @@ class SceneGenerator():
 
         # create gaussian texture image
         SHAPE = (150,200)
-        noise = np.random.normal(255./1,255./3,SHAPE)
+        noise = np.random.normal(255./1,255./15,SHAPE) #beyond this, it will be too 
         image_noise = Image.fromarray(noise)
         image_noise = image_noise.convert('RGB')
         fname2 = "gaussian_noise.png"
@@ -251,11 +251,15 @@ class SceneGenerator():
         #                     specularColor=[1, 1, 1, 1],
         #                     physicsClientId=pb_client)
 
-        # apply texture to the object way: idea two
+        # change visual shape on all faces: idea two
+        for idx in range(24):
+           pb.changeVisualShape(objId, idx, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #left side
+
+        # apply texture to the object one by one: idea two
         # pb.changeVisualShape(objId, -1, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #bottom 
-        pb.changeVisualShape(objId, 0, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #left side
-        pb.changeVisualShape(objId, 1, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #right side
-        pb.changeVisualShape(objId, 2, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #top
+        # pb.changeVisualShape(objId, 0, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #left side
+        # pb.changeVisualShape(objId, 1, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #right side
+        # pb.changeVisualShape(objId, 2, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #top
 
         # change visual shape without the texture add
         # pb.changeVisualShape(objId, -1, rgbaColor=[168 / 255.0, 164 / 255.0, 92 / 255.0, 1.0], specularColor=[0.5, 0.5, 0.5]) 
