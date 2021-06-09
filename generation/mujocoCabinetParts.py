@@ -37,8 +37,9 @@ def sample_handle(length, width, height, left):
     HANDLE_HEIGHT=pyro.sample('hh', dist.Uniform(0.01, 0.2)).item()
 
     HX = length/4
-    HY = pyro.sample('hy', dist.Uniform(width*2 - width/4, 2 * width - 2*HANDLE_WIDTH))
-    HZ = pyro.sample('hz', dist.Uniform(-(height - HANDLE_HEIGHT), height-HANDLE_HEIGHT))
+    # HY = pyro.sample('hy', dist.Uniform(width*2 - width/4, 2 * width - 2*HANDLE_WIDTH))
+    HY = pyro.sample('hy', dist.Uniform(((width*2) - (width/4)), ((2*width) - (2*HANDLE_WIDTH)))).item()
+    HZ = pyro.sample('hz', dist.Uniform(-(height - HANDLE_HEIGHT), height-HANDLE_HEIGHT)).item()
     if left:
         HY = HY
     else:
