@@ -31,7 +31,8 @@ def sample_toaster(mean_flag):
 
 def sample_t_handle(side_width):
     HANDLE_LEN=pyro.sample('hl', dist.Uniform(0.01, 0.04)).item()
-    HANDLE_WIDTH=pyro.sample('hw', dist.Uniform(side_width, side_width)).item()
+    # HANDLE_WIDTH=pyro.sample('hw', dist.Uniform(side_width, side_width)).item()
+    HANDLE_WIDTH=pyro.sample('hw', dist.Uniform(0.01, 0.04)).item()
     HANDLE_HEIGHT=pyro.sample('hh', dist.Uniform(0.01, 0.04)).item()
     return HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT
 
