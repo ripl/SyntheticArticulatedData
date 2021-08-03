@@ -29,6 +29,29 @@ import generation.calibrations as calibrations
 pb_client = pb.connect(pb.GUI)
 pb.setGravity(0,0,-100)
 
+
+from os.path import isfile, join
+def convert_frames_to_video(pathIn,pathOut,fps):
+    frame_array = []
+    files = [f for f in os.listdir(pathIn) if isfile(join(pathIn, f))]
+    #for sorting the file names properly
+    files.sort(key = lambda x: int(x[5:-4]))
+    for i in range(len(files)):
+        filename=pathIn + files[i]
+        #reading each files
+        img = cv2.imread(filename)
+        height, width, layers = img.shape
+        size = (width,height)
+        print(filename)
+        #inserting the frames into an image array
+        frame_array.append(img)
+    out = cv2.VideoWriter(pathOut,cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+    for i in range(len(frame_array)):
+        # writing to a image array
+        out.write(frame_array[i])
+    out.release()
+
+
 def white_bg(img):
     mask = 1 - (img > 0)
     img_cp = copy.deepcopy(img)
@@ -406,15 +429,45 @@ class SceneGenerator():
                         frameRgbFname = os.path.join(videoFolderFname, 'rgb_frame_'+str(frame_idx).zfill(6)+'.png')
                         rgbFrame = white_bg(rgbFrame)
                         cv2.imwrite(frameRgbFname, rgbFrame)
-                        frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_'+str(frame_idx).zfill(6)+'.pt')
-                        real_depth = buffer_to_real(depthFrame, 12.0, 0.1)
-                        norm_depth = real_depth / 12.0
+                        # frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_'+str(frame_idx).zfill(6)+'.pt')
+                        frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_'+str(frame_idx).zfill(6)+'.png')
+                        # real_depth = buffer_to_real(depthFrame, 12.0, 0.1)
+                        # norm_depth = real_depth / 12.0
+                        integer_depth = norm_depth * 255
+                        cv2.imwrite(frameDepthFname, integer_depth)
 
-                        if self.masked:
-                            # remove background
-                            mask = norm_depth > 0.99
-                            norm_depth = (1-mask)*norm_depth
+                        # if self.masked:
+                        #     # remove background
+                        #     mask = norm_depth > 0.99
+                        #     norm_depth = (1-mask)*norm_depth
 
-                        torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
+                        # torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
 
+
+                    # create rgb videos files 
+                    video_folder = os.path.join(self.savedir, str(self.img_idx).zfill(6))
+                    os.makedirs(video_folder, exist_ok=False)
+                    video_name = video_folder+'/video.avi'
+                    images_ = [img for img in os.listdir(videoFolderFname) if img.startswith("rgb_frame")]
+                    frame_ = cv2.imread(os.path.join(videoFolderFname, images_[0]))
+                    height_, width_, layers_ = frame_.shape
+                    video_ = cv2.VideoWriter(video_name, 0, 1, (width_,height_))
+                    for image_ in images_:
+                        video_.write(cv2.imread(os.path.join(videoFolderFname, image_)))
+                    cv2.destroyAllWindows()
+                    video_.release()
+
+
+                    # create depth videos files 
+                    video_name_depth = video_folder+'/depth_video.avi'
+                    images_depth = [img for img in os.listdir(videoFolderFname) if img.startswith("depth_frame")]
+                    frame_depth = cv2.imread(os.path.join(videoFolderFname, images_depth[0]))
+                    height_depth, width_depth, layers_depth = frame_depth.shape
+                    video_depth = cv2.VideoWriter(video_name_depth, 0, 1, (width_depth,height_depth))
+                    for image_dp in images_depth:
+                        video_depth.write(cv2.imread(os.path.join(videoFolderFname, image_dp)))
+                    cv2.destroyAllWindows()
+                    video_depth.release()
+
+ 
                 self.img_idx += 1
