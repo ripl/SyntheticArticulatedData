@@ -17,8 +17,6 @@ import pybullet as pb
 import random
 from PIL import Image
 
-import moviepy.video.io.ImageSequenceClip
-
 from generation.mujocoCabinetParts import build_cabinet, sample_cabinet
 from generation.mujocoDrawerParts import build_drawer, sample_drawers
 from generation.mujocoMicrowaveParts import build_microwave, sample_microwave
@@ -443,52 +441,51 @@ class SceneGenerator():
                         #     mask = norm_depth > 0.99
                         #     norm_depth = (1-mask)*norm_depth
 
-                        # torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)    
+                        # torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
+
+                    
+
+                    # # create rgb videos files 
+                    # video_folder = os.path.join(self.savedir, str(self.img_idx).zfill(6))
+                    # os.makedirs(video_folder, exist_ok=False)
+                    # frameSize = (500, 500)
+
+
+                    # video_name = video_folder+'/video.avi'
+                    # video_name_depth = video_folder+'/depth_video.avi'
+
+                    # out = cv2.VideoWriter(video_name,cv2.VideoWriter_fourcc(*'DIVX'), 60, frameSize)
+                    # for filename in os.listdir(videoFolderFname):
+                    #     if filename.startswith("rgb_frame"):
+                    #         img = cv2.imread(filename)
+                    #         out.write(img)
+                    # out.release()
+
+
+                    # depth_out = cv2.VideoWriter(video_name_depth,cv2.VideoWriter_fourcc(*'DIVX'), 60, frameSize) 
+                    # for filename in os.listdir(videoFolderFname):
+                    #     if filename.startswith("depth_frame"):
+                    #         img_depth = cv2.imread(filename)
+                    #         depth_out.write(img_depth)
+                    # depth_out.release()        
   
 
                     # create rgb videos files 
-                    # video_folder = os.path.join(self.savedir, str(self.img_idx).zfill(6))
-                    # os.makedirs(video_folder, exist_ok=False)
-                    # video_name = video_folder+'/video.mp4'
-                    # images_ = [img for img in os.listdir(videoFolderFname) if img.startswith("rgb_frame")]
-                    # frame_ = cv2.imread(os.path.join(videoFolderFname, images_[0]))
-                    # height_, width_, layers_ = frame_.shape
-                    # video_ = cv2.VideoWriter(video_name, 0, 1, (width_,height_))
-                    # for image_ in images_:
-                    #     video_.write(cv2.imread(os.path.join(videoFolderFname, image_)))
-                    # cv2.destroyAllWindows()
-                    # video_.release()
-
-
-                    # # create depth videos files 
-                    # video_name_depth = video_folder+'/depth_video.mp4'
-                    # images_depth = [img for img in os.listdir(videoFolderFname) if img.startswith("depth_frame")]
-                    # frame_depth = cv2.imread(os.path.join(videoFolderFname, images_depth[0]))
-                    # height_depth, width_depth, layers_depth = frame_depth.shape
-                    # video_depth = cv2.VideoWriter(video_name_depth, 0, 1, (width_depth,height_depth))
-                    # for image_dp in images_depth:
-                    #     video_depth.write(cv2.imread(os.path.join(videoFolderFname, image_dp)))
-                    # cv2.destroyAllWindows()
-                    # video_depth.release()
-
-
-                    image_folder=videoFolderFname
                     video_folder = os.path.join(self.savedir, str(self.img_idx).zfill(6))
                     os.makedirs(video_folder, exist_ok=False)
-                    fps=1
-
                     video_name = video_folder+'/video.mp4'
-                    image_files = [image_folder+'/'+img for img in os.listdir(image_folder) if img.startswith("rgb_frame")]
-                    clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_files, fps=fps)
-                    clip.write_videofile(video_name)
+                    images_ = [img for img in os.listdir(videoFolderFname) if img.startswith("rgb_frame")]
+                    frame_ = cv2.imread(os.path.join(videoFolderFname, images_[0]))
+                    height_, width_, layers_ = frame_.shape
+                    video_ = cv2.VideoWriter(video_name, 0, 1, (width_,height_))
+                    for image_ in images_:
+                        video_.write(cv2.imread(os.path.join(videoFolderFname, image_)))
+                    cv2.destroyAllWindows()
+                    video_.release()
 
-                    # video_name_depth = video_folder+'/depth_video.mp4'
-                    # images_files_depth = [img for img in os.listdir(videoFolderFname) if img.startswith("depth_frame")]
-                    # clip_depth = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(images_files_depth, fps=fps)
-                    # clip_depth.write_videofile(video_name_depth)
 
                     # create depth videos files 
-                    video_name_depth = video_folder+'/depth_video.avi'
+                    video_name_depth = video_folder+'/depth_video.mp4'
                     images_depth = [img for img in os.listdir(videoFolderFname) if img.startswith("depth_frame")]
                     frame_depth = cv2.imread(os.path.join(videoFolderFname, images_depth[0]))
                     height_depth, width_depth, layers_depth = frame_depth.shape
@@ -499,6 +496,33 @@ class SceneGenerator():
                     video_depth.release()
 
 
+                    # video_folder = os.path.join(self.savedir, str(self.img_idx).zfill(6))
+                    # os.makedirs(video_folder, exist_ok=False)
+                    # video_name = video_folder+'/video.avi'
+                    # video_name_depth = 'depth_video.avi'
+                    # img_array = []
+                    # depth_img_array = []
+                    # for filename in os.listdir(videoFolderFname):
+                    #     if filename.startswith("rgb_frame"):
+                    #         img = cv2.imread(filename)
+                    #         height, width, layers = img.shape
+                    #         size = (width,height)
+                    #         img_array.append(img)
+                    #     if filename.startswith("depth_frame"):
+                    #         depth_img = cv2.imread(filename)
+                    #         depth_height, depth_width, depth_layers = depth_img.shape
+                    #         depth_size = (depth_width,height)
+                    #         depth_img_array.append(depth_img)
+
+                    # out = cv2.VideoWriter(video_name,cv2.VideoWriter_fourcc(*'DIVX'), 15, size)           
+                    # for i in range(len(img_array)):
+                    #     out.write(img_array[i])
+                    # out.release()
+
+                    # depth_out = cv2.VideoWriter(video_name_depth,cv2.VideoWriter_fourcc(*'DIVX'), 15, depth_size)           
+                    # for i in range(len(depth_img_array)):
+                    #     depth_out.write(depth_img_array[i])
+                    # depth_out.release()
 
 
  
