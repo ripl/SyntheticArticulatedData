@@ -1,7 +1,8 @@
-numpy
 matplotlib
+numpy
+opencv-python
+pybullet
 pyro-ppl
 torch
-opencv-python
 tqdm
-pybullet
+transforms3d

@@ -9,3 +9,7 @@ depth_images/
 # Miscellaneous
 .DS_Store
 
+.vscode/
+
+*.png
+test/

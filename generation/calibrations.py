@@ -60,8 +60,8 @@ zfar = 12
 
 
 # old ones
-sim_width = 192
-sim_height = 108
+sim_width = 1920
+sim_height = 1080
 
 
 # sim_width = 720 * 4
