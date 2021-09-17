@@ -1,18 +1,16 @@
-# SyntheticArticulatedData
-Procedurally generated articulated objects specified in Universal Robot Description Format (URDF), and rendered using Mujoco.
+# Synthetic Articulated Data
+Procedurally generated articulated objects specified in Universal Robot Description Format (URDF), and rendered using MuJoCo or PyBullet.
 
 # Mujoco
-
-Setup:
+Setup:  
 ```pip install -r requirements.txt```
 
-Example generation:
+Example generation:  
 ```python generate_data.py --n 10 --dir ./test --obj microwave --masked --debug```
 
 # PyBullet
-
-Setup:
+Setup:  
 ```pip install -r requirements-bullet.txt```
 
-Example generation:
-```python generate_data.py --n 10 --dir ./test --obj microwave --masked --debug --py-bullet```
+Example generation:  
+```python generate_data.py --n 10 --dir ./test --obj microwave --masked --debug --pybullet```

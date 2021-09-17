@@ -10,7 +10,7 @@ from generation.utils import sample_quat, sample_pose, make_string, make_single_
 d_len = dist.Uniform(8/2*0.0254, 20/2*0.0254)
 d_width = dist.Uniform(16/2*0.0254, 24/2*0.0254)
 d_height = dist.Uniform(8/2*0.0254, 20/2*0.0254)
-d_thicc = dist.Uniform(0.02 / 2, 0.05 / 2)
+d_thic = dist.Uniform(0.02 / 2, 0.05 / 2)
 d_mass = dist.Uniform(5.0, 30.0)
 
 def sample_toaster(mean_flag):
@@ -18,13 +18,13 @@ def sample_toaster(mean_flag):
         length = d_len.mean
         width = d_width.mean
         height = d_height.mean
-        thickness=d_thicc.mean
+        thickness=d_thic.mean
         mass = d_mass.mean
     else:
         length=pyro.sample("length",d_len).item()
         width =pyro.sample('width',d_width).item()
         height=pyro.sample('height',d_height).item()
-        thickness=pyro.sample('thicc',d_thicc).item()
+        thickness=pyro.sample('thic',d_thic).item()
         mass = pyro.sample('mass', d_mass).item()
     left = False
     return length, width, height, thickness, left, mass
@@ -36,16 +36,16 @@ def sample_t_handle(side_width):
     HANDLE_HEIGHT=pyro.sample('hh', dist.Uniform(0.01, 0.04)).item()
     return HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT
 
-def build_toaster(length, width, height, thicc, left, set_pose=None, set_rot=None):
+def build_toaster(length, width, height, thic, left, set_pos=None, set_rot=None):
     base_length=length
     base_width=width
-    base_height=thicc
+    base_height=thic
 
-    if not set_pose:
+    if not set_pos:
         base_xyz, base_angle = sample_pose()
         base_quat = angle_to_quat(base_angle)
     else:
-        base_xyz = tuple(set_pose)
+        base_xyz = tuple(set_pos)
         base_quat = tuple(set_rot)
 
     base_origin=make_string(base_xyz)
@@ -53,22 +53,22 @@ def build_toaster(length, width, height, thicc, left, set_pose=None, set_rot=Non
 
     base_size = make_string((base_length, base_width, base_height))
     side_length=length
-    side_width=thicc
+    side_width=thic
     side_height=height
     side_size = make_string((side_length, side_width, side_height))
 
     back_size = make_string((side_width, base_width, side_height))
     top_size = base_size
 
-    left_origin  = make_string((0, -width + thicc, height))
-    right_origin = make_string((0, width - thicc, height))
+    left_origin  = make_string((0, -width + thic, height))
+    right_origin = make_string((0, width - thic, height))
     top_origin = make_string((0,0,height*2))
-    back_origin = make_string((-base_length + thicc, 0.0, height))
+    back_origin = make_string((-base_length + thic, 0.0, height))
 
     ## I think I need to randomize keypad size...
     kw_multiplier = pyro.sample("kw", dist.Uniform(1 / 5, 1 / 3)).item()
-    keypad_size = make_string((side_length - thicc, base_width * kw_multiplier, side_height - thicc))
-    keypad_origin = make_string((thicc, base_width - base_width * kw_multiplier -0.001, side_height))
+    keypad_size = make_string((side_length - thic, base_width * kw_multiplier, side_height - thic))
+    keypad_origin = make_string((thic, base_width - base_width * kw_multiplier -0.001, side_height))
 
     door_origin=make_string((0.0+0.02, 0, side_height))
     door_size = make_string((side_width, base_width * (1-kw_multiplier), side_height))
@@ -79,7 +79,7 @@ def build_toaster(length, width, height, thicc, left, set_pose=None, set_rot=Non
 
     HANDLE_X = length/4
     HANDLE_Y = 0
-    HANDLE_Z = 2*side_height - 2*thicc
+    HANDLE_Z = 2*side_height - 2*thic
     HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT = sample_t_handle(base_width * kw_multiplier)
     handle_origin = make_string((HANDLE_X, HANDLE_Y, HANDLE_Z))
     handle_size = make_string((HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT))

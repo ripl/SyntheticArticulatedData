@@ -9,7 +9,7 @@ from generation.utils import *
 d_len = dist.Uniform(18/2*0.0254, 24/2*0.0254)
 d_width = dist.Uniform(12/2*0.0254, 30/2*0.0254)
 d_height = dist.Uniform(4/2*0.0254, 12/2*0.0254)
-d_thicc = dist.Uniform(0.01 / 2, 0.05 / 2)
+d_thic = dist.Uniform(0.01 / 2, 0.05 / 2)
 
 def get_fake_pose():
     base_xyz = [3.0,0.0,0.0]
@@ -22,26 +22,26 @@ def sample_drawers(mean_flag):
         length = d_len.mean
         width = d_width.mean
         height = d_height.mean
-        thickness=d_thicc.mean
+        thickness=d_thic.mean
     else:
         length=pyro.sample("length", d_len).item() #aka depth
         width =pyro.sample('width', d_width).item()
         height=pyro.sample('height', d_height).item()
-        thickness=pyro.sample('thicc', d_thicc).item()
+        thickness=pyro.sample('thic', d_thic).item()
     left=0
     mass=5.0
     return length, width, height, thickness, left, mass
 
-def build_drawer(length, width, height, thicc, left, set_pose=None, set_rot=None):
+def build_drawer(length, width, height, thic, left, set_pos=None, set_rot=None):
     base_length=length
     base_width=width
-    base_height=thicc
+    base_height=thic
 
-    if set_pose is None:
+    if set_pos is None:
         base_xyz, base_angle = sample_pose_drawer()
         base_quat = angle_to_quat(base_angle)
     else:
-        base_xyz = tuple(set_pose)
+        base_xyz = tuple(set_pos)
         base_quat = tuple(set_rot)
 
 
@@ -50,7 +50,7 @@ def build_drawer(length, width, height, thicc, left, set_pose=None, set_rot=None
 
     base_size = make_string((base_length, base_width, base_height))
     side_length=length
-    side_width=thicc
+    side_width=thic
     side_height=height
     side_size = make_string((side_length, side_width, side_height))
 
@@ -58,26 +58,26 @@ def build_drawer(length, width, height, thicc, left, set_pose=None, set_rot=None
     top_size = base_size
     door_size = make_string((side_width, base_width * 3 / 4, side_height))
 
-    left_origin  = make_string((0, -width + thicc, height))
-    right_origin = make_string((0, width - thicc, height))
+    left_origin  = make_string((0, -width + thic, height))
+    right_origin = make_string((0, width - thic, height))
     top_origin = make_string((0,0,height*2))
-    back_origin = make_string((-base_length + thicc, 0.0, height))
+    back_origin = make_string((-base_length + thic, 0.0, height))
 
     # # TODO: sample drawer height and width
-    drawer_bottom_origin = make_string((0, 0, thicc / 2))
-    drawer_left_origin  = make_string((0, -width + 2*thicc, height))
-    drawer_right_origin = make_string((0, width - 2*thicc, height))
-    drawer_front_origin = make_string((base_length - 2*thicc, 0.0, height))
-    drawer_back_origin = make_string((-base_length + thicc, 0.0, height))
+    drawer_bottom_origin = make_string((0, 0, thic / 2))
+    drawer_left_origin  = make_string((0, -width + 2*thic, height))
+    drawer_right_origin = make_string((0, width - 2*thic, height))
+    drawer_front_origin = make_string((base_length - 2*thic, 0.0, height))
+    drawer_back_origin = make_string((-base_length + thic, 0.0, height))
 
-    drawer_bottom_size = make_string((base_length - thicc, base_width - thicc, base_height))
-    drawer_back_size = make_string((side_width, base_width - thicc, side_height - thicc))
-    drawer_side_size = make_string((side_length - thicc, side_width, side_height - thicc))
+    drawer_bottom_size = make_string((base_length - thic, base_width - thic, base_height))
+    drawer_back_size = make_string((side_width, base_width - thic, side_height - thic))
+    drawer_side_size = make_string((side_length - thic, side_width, side_height - thic))
 
     # drawer_height = pyro.sample("drawer_height", dist.Uniform(2.0 / 3.0 * height, 7.0/8.0*height))
     # drawer_width =  pyro.sample("drawer_width", dist.Uniform(2.0 / 3.0 * width, 7.0/8.0*width))
-    drawer_height = height- thicc
-    drawer_width = width - 2*thicc
+    drawer_height = height- thic
+    drawer_width = width - 2*thic
     drawer_len = 5./6.*length
     drawer_size = make_string((drawer_len, drawer_width, drawer_height))
 
@@ -119,12 +119,12 @@ def build_drawer(length, width, height, thicc, left, set_pose=None, set_rot=None
     ## TESTING PARAM CONVERSION HERE
     axis = get_cam_relative_params2(obj)
     # print('get_cam_relative_params2',axis.shape)
-    ax_pose = tuple(axis[:3])
+    ax_pos = tuple(axis[:3])
     ax_quat = tuple(axis[3:7])
-    # print(ax_pose)
+    # print(ax_pos)
     # print(ax_quat)
-    # ax_string = make_string(tuple(ax_pose))
-    ax_string=make_string(ax_pose)
+    # ax_string = make_string(tuple(ax_pos))
+    ax_string=make_string(ax_pos)
     # print(ax_string)
     ax_quat_string=make_quat_string(ax_quat)
 

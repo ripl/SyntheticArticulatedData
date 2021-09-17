@@ -10,7 +10,7 @@ from generation.utils import sample_quat, sample_pose, make_string, make_single_
 d_len = dist.Uniform(0.28,0.32)
 d_width = dist.Uniform(0.3,0.7)
 d_height = dist.Uniform(0.5,0.7)
-d_thicc = dist.Uniform(0.03, 0.05)
+d_thic = dist.Uniform(0.03, 0.05)
 d_mass = dist.Uniform(5.0, 30.0)
 
 def sample_cabinet2(mean_flag):
@@ -18,13 +18,13 @@ def sample_cabinet2(mean_flag):
         length=d_len.mean
         width=d_width.mean
         height=d_height.mean
-        thickness=d_thicc.mean
+        thickness=d_thic.mean
         mass=d_mass.mean
     else:
         length=pyro.sample("length", d_len).item()
         width =pyro.sample('width', d_width).item()
         height=pyro.sample('height', d_height).item()
-        thickness=pyro.sample('thicc', d_thicc).item()
+        thickness=pyro.sample('thic', d_thic).item()
         mass=pyro.sample('mass', d_mass)
     left = True
     return length / 2, width / 2, height / 2, thickness / 2, left, mass
@@ -44,17 +44,17 @@ def sample_handle(length, width, height, left):
 
     return HX, HY, HZ, HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT
 
-def build_cabinet2(length, width, height, thicc, left, set_pose=None, set_rot=None):
+def build_cabinet2(length, width, height, thic, left, set_pos=None, set_rot=None):
 
     base_length=length
     base_width=width
-    base_height=thicc
+    base_height=thic
 
-    if not set_pose:
+    if not set_pos:
         base_xyz, base_angle = sample_pose()
         base_quat = angle_to_quat(base_angle)
     else:
-        base_xyz = tuple(set_pose)
+        base_xyz = tuple(set_pos)
         base_quat = tuple(set_rot)
 
     base_origin=make_string(base_xyz)
@@ -62,7 +62,7 @@ def build_cabinet2(length, width, height, thicc, left, set_pose=None, set_rot=No
 
     base_size = make_string((base_length, base_width, base_height))
     side_length=length
-    side_width=thicc
+    side_width=thic
     side_height=height
     side_size = make_string((side_length, side_width, side_height))
 
@@ -70,10 +70,10 @@ def build_cabinet2(length, width, height, thicc, left, set_pose=None, set_rot=No
     top_size = base_size
     door_size = make_string((side_width, base_width / 2, side_height))
 
-    left_origin  = make_string((0, -width + thicc, height))
-    right_origin = make_string((0, width - thicc, height))
+    left_origin  = make_string((0, -width + thic, height))
+    right_origin = make_string((0, width - thic, height))
     top_origin = make_string((0,0,height*2))
-    back_origin = make_string((-base_length + thicc, 0.0, height))
+    back_origin = make_string((-base_length + thic, 0.0, height))
 
     HANDLE_X, HANDLE_Y, HANDLE_Z, HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT = sample_handle(length, width, height, 1)
     handle_size = make_string((HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT))
@@ -206,7 +206,7 @@ def build_cabinet2(length, width, height, thicc, left, set_pose=None, set_rot=No
 
     # geometry = np.array([length, width, height, left]) # length = 4
     # parameters = np.array(params) # shape = 1, 2, 3, length = 6
-    # cab = Cabinet(0, geometry, parameters, xml, pose=base_xyz, rotation=base_angle)
+    # cab = Cabinet(0, geometry, parameters, xml, pos=base_xyz, rotation=base_angle)
     cab.xml=xml
     return cab
 

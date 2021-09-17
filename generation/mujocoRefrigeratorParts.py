@@ -25,7 +25,7 @@ def sample_refrigerator(mean_flag):
         length = pyro.sample("length", dist_length).item()
         width =pyro.sample('width', dist_width).item()
         height=pyro.sample('height', dist_height).item()
-        thickness=pyro.sample('thicc', dist_thickness).item()
+        thickness=pyro.sample('thic', dist_thickness).item()
         mass=pyro.sample('mass', dist_mass)
     left=True
     return length, width, height, thickness, left, mass
@@ -40,17 +40,17 @@ def sample_fridge_handle(length, width, height, left):
     HZ = pyro.sample('hz', dist.Uniform(-(height - HANDLE_HEIGHT), height-HANDLE_HEIGHT))
     return HX, HY, HZ, HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT
 
-def build_refrigerator(length, width, height, thicc, left, set_pose=None, set_rot=3.14):
+def build_refrigerator(length, width, height, thic, left, set_pos=None, set_rot=np.pi):
 
     base_length=length
     base_width=width
-    base_height=thicc
+    base_height=thic
 
-    if set_pose is None:
+    if set_pos is None:
         base_xyz, base_angle = sample_pose_fridge(base_length, base_width)
         base_quat = angle_to_quat(base_angle)
     else:
-        base_xyz = tuple(set_pose)
+        base_xyz = tuple(set_pos)
         base_quat = tuple(set_rot)
 
     # build the case
@@ -59,17 +59,17 @@ def build_refrigerator(length, width, height, thicc, left, set_pose=None, set_ro
 
     base_size = make_string((base_length, base_width, base_height))
     side_length=length
-    side_width=thicc
+    side_width=thic
     side_height=height
     side_size = make_string((side_length, side_width, side_height))
 
     back_size = make_string((side_width, base_width, side_height))
     top_size = base_size
 
-    left_origin  = make_string((0, -width + thicc, height))
-    right_origin = make_string((0, width - thicc, height))
+    left_origin  = make_string((0, -width + thic, height))
+    right_origin = make_string((0, width - thic, height))
     top_origin = make_string((0,0,height*2))
-    back_origin = make_string((-base_length + thicc, 0.0, height))
+    back_origin = make_string((-base_length + thic, 0.0, height))
 
     # sample a height fraction; maybe move to sample_refrigerator, but sounds annoying.
     height_fraction = pyro.sample("hf", dist.Uniform(10. / 16., 13. / 16. )).item()
@@ -226,7 +226,7 @@ def test():
     for i in range(100):
         l,w,h,t,left,m=sample_refrigerator(False)
         fridge=build_refrigerator(l,w,h,t,left,
-                                  set_pose = (3.0, 0.0, -1.0),
+                                  set_pos = (3.0, 0.0, -1.0),
                                   set_rot=(0,0,0,1))
 
         model = load_model_from_xml(fridge.xml)

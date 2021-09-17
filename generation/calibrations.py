@@ -81,7 +81,7 @@ old_sim_proj_matrix = np.array([[old_sim_focal_x, 0, sim_width / 2],
 
 
 # new sim cam Params, using color fov_y
-sim_focal_y = (sim_height / 2) / math.tan(color_fov_y * 3.14 / 180.0 / 2)
+sim_focal_y = (sim_height / 2) / math.tan(color_fov_y * np.pi / 180.0 / 2)
 sim_focal_x = sim_focal_y
 sim_proj_matrix = np.array([[sim_focal_x, 0, sim_width / 2],
                                 [0, sim_focal_y, sim_height / 2],
@@ -98,8 +98,8 @@ test_sim_fov_y =  360 / math.pi * math.atan2(sim_height, 2 * sim_proj_matrix[1,1
 test_sim_fov_x =  360 / math.pi * math.atan2(sim_width, 2 * sim_proj_matrix[0,0] )
 
 # fake real sim cam Params (ie, size is the full 1920 x 1080)
-fake_focal_y = (color_height / 2) / math.tan(color_fov_y * 3.14 / 180.0 / 2)
-fake_focal_x = (color_width / 2) / math.tan(color_fov_x * 3.14 / 180.0 / 2)
+fake_focal_y = (color_height / 2) / math.tan(color_fov_y * np.pi / 180.0 / 2)
+fake_focal_x = (color_width / 2) / math.tan(color_fov_x * np.pi / 180.0 / 2)
 fake_proj_matrix = np.array([[fake_focal_x, 0, color_width / 2],
                                 [0, fake_focal_y, color_height / 2],
                                 [0, 0, 1]])

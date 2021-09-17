@@ -20,13 +20,12 @@ def write_urdf(filename, xml):
 
 def get_cam_params(cam='Kinect'):
     if cam == 'Kinect':
-        # znear= pyro.sample("znear",dist.Uniform(0.09, 0.11)).item()
+        # znear = pyro.sample("znear",dist.Uniform(0.09, 0.11)).item()
         # zfar = pyro.sample("zfar", dist.Uniform(11,13)).item()
         # fovy = pyro.sample("fovy", dist.Uniform(66, 74)).item()
         znear = calibrations.znear
         zfar = calibrations.zfar
         fovy = calibrations.color_fov_y
-
     elif cam == 'RealSense':
         znear = pyro.sample("znear", dist.Uniform(0.18, 0.22)).item()
         zfar = pyro.sample("zfar", dist.Uniform(9, 11)).item()
@@ -63,8 +62,8 @@ def make_quat_string(quat):
 
 
 def get_cam_relative_params(obj):
-    obj_position = obj.pose
-    obj_angle = 3.1415926 - obj.rotation
+    obj_position = obj.pos
+    obj_angle = np.pi15926 - obj.rot
     obj_axis = [0, 0, 1]
 
     obj_rot_matrix = tf3d.axangles.axangle2mat(obj_axis, obj_angle)
@@ -74,7 +73,7 @@ def get_cam_relative_params(obj):
     door = obj.params[1]
     axis_in_obj_frame = [axis[0], axis[1], axis[2], 1.0]
     axis_in_world_frame = (np.matmul(obj_transform, axis_in_obj_frame))[:3]
-    ax_quat = tf3d.quaternions.axangle2quat(obj_axis, obj.rotation)  # [w, qx, qy, qz]
+    ax_quat = tf3d.quaternions.axangle2quat(obj_axis, obj.rot)  # [w, qx, qy, qz]
 
     axis_and_quat = np.append(axis_in_world_frame, ax_quat)
     axis_and_door = np.append(axis_and_quat, door)
@@ -84,12 +83,10 @@ def get_cam_relative_params(obj):
 
 
 def get_cam_relative_params2(obj):
-    '''
-            Converts an object's axis coordinates from object frame to camera frame
-    '''
-    obj_position = obj.pose
+    """ Converts an object's axis coordinates from object frame to camera frame. """
+    obj_position = obj.pos
 
-    obj_rot_matrix = tf3d.quaternions.quat2mat(obj.rotation)
+    obj_rot_matrix = tf3d.quaternions.quat2mat(obj.rot)
     obj_transform = tf3d.affines.compose(obj_position, obj_rot_matrix, np.ones(3))
 
     axis = obj.params[0]
@@ -97,7 +94,7 @@ def get_cam_relative_params2(obj):
 
     axis_in_obj_frame = [axis[0], axis[1], axis[2], 1.0]
     axis_in_world_frame = (np.matmul(obj_transform, axis_in_obj_frame))[:3]
-    ax_quat = obj.rotation  # [w, qx, qy, qz]
+    ax_quat = obj.rot  # [w, qx, qy, qz]
 
     axis_and_quat = np.append(axis_in_world_frame, ax_quat)
     axis_and_door = np.append(axis_and_quat, door)
@@ -107,39 +104,39 @@ def get_cam_relative_params2(obj):
 
 
 def transform_param(axis, door, obj):
-    obj_position = obj.pose
+    obj_position = obj.pos
 
-    obj_rot_matrix = tf3d.quaternions.quat2mat(obj.rotation)
+    obj_rot_matrix = tf3d.quaternions.quat2mat(obj.rot)
     obj_transform = tf3d.affines.compose(obj_position, obj_rot_matrix, np.ones(3))
 
     axis_in_obj_frame = [axis[0], axis[1], axis[2], 1.0]
     axis_in_world_frame = (np.matmul(obj_transform, axis_in_obj_frame))[:3]
-    ax_quat = obj.rotation  # [w, qx, qy, qz]
+    ax_quat = obj.rot  # [w, qx, qy, qz]
 
     if obj.type == 3:
         # drawer - axis of translation is in x
-        ax_quat = obj.rotation * tf3d.quaternions.axangle2quat([1, 0, 0], -1.57)
+        ax_quat = obj.rot * tf3d.quaternions.axangle2quat([1, 0, 0], -1.57)
 
     axis_and_quat = np.append(axis_in_world_frame, ax_quat)
     return axis_and_quat, door
 
 
 def sample_quat():
-    rpy = pyro.sample('euler', dist.Uniform(torch.tensor([0.0, 0.0, 0.0]), torch.tensor([2 * 3.14, 2 * 3.14, 2 * 3.14]))).numpy()
+    rpy = pyro.sample('euler', dist.Uniform(torch.tensor([0.0, 0.0, 0.0]), torch.tensor([2 * np.pi, 2 * np.pi, 2 * np.pi]))).numpy()
     quat = tf3d.euler.euler2quat(rpy[0], rpy[1], rpy[2])
     return quat
 
 
 def sample_pose():
     xyz = pyro.sample('origin', dist.Uniform(torch.tensor([1.0, -0.5, -0.7]), torch.tensor([2.0, 0.5, 0.3]))).numpy()
-    angle = pyro.sample('angle', dist.Uniform(3 / 4 * 3.14, 5 / 4 * 3.14)).item()
-    return tuple(xyz), angle
+    angle = pyro.sample('angle', dist.Uniform(3 / 4 * np.pi, 5 / 4 * np.pi)).item()
+    return xyz, angle
 
 
 def sample_pose_fridge(l, w):
     y = pyro.sample('y', dist.Uniform(torch.tensor([-1.0]),
                                       torch.tensor([1.0]))).item()
-    x_min = (y + w) / np.arctan(27. * 3.14 / 180.) + l
+    x_min = (y + w) / np.arctan(27. * np.pi / 180.) + l
     x = pyro.sample('x', dist.Uniform(torch.tensor([x_min]),
                                       torch.tensor([3.5]))).item()
     z = pyro.sample('z', dist.Uniform(torch.tensor([-1.5]),
@@ -150,11 +147,11 @@ def sample_pose_fridge(l, w):
     xyz = np.array([x, y, z])
     # print(xyz)
     # xyz=pyro.sample('origin', dist.Uniform(torch.tensor([x_min,-1.0,-2.0]),torch.tensor([3.3, 1.0 , -0.7]))).numpy()
-    angle = pyro.sample('angle', dist.Uniform(3 / 4 * 3.14, 5 / 4 * 3.14)).item()
+    angle = pyro.sample('angle', dist.Uniform(3 / 4 * np.pi, 5 / 4 * np.pi)).item()
     return tuple(xyz), angle
 
 
 def sample_pose_drawer():
     xyz = pyro.sample('origin', dist.Uniform(torch.tensor([1.0, -0.5, -0.8]), torch.tensor([2.0, 0.5, 0.0]))).numpy()
-    angle = pyro.sample('angle', dist.Uniform(3 / 4 * 3.14, 5 / 4 * 3.14)).item()
+    angle = pyro.sample('angle', dist.Uniform(3 / 4 * np.pi, 5 / 4 * np.pi)).item()
     return tuple(xyz), angle

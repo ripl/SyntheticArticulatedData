@@ -85,13 +85,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_microwave(mean_flag)
             if mean_flag:
                 obj = build_microwave(l, w, h, t, left,
-                                      set_pose = [1.0, 0.0, -0.15],
+                                      set_pos = [1.0, 0.0, -0.15],
                                       set_rot = [0.0, 0.0, 0.0, 1.0] )
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_microwave(l, w, h, t, left,
-                                      set_pose = [1.0, 0.0, -0.15],
+                                      set_pos = [1.0, 0.0, -0.15],
                                       set_rot = base_quat)
             else:
                 obj = build_microwave(l, w, h, t, left)
@@ -100,13 +100,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_drawers(mean_flag)
             if mean_flag:
                 obj = build_drawer(l, w, h, t, left,
-                                   set_pose = [1.5, 0.0, -0.4],
+                                   set_pos = [1.5, 0.0, -0.4],
                                    set_rot = [0.0, 0.0, 0.0, 1.0] )
             elif cute_flag:
                base_xyz, base_angle = sample_pose()
                base_quat = angle_to_quat(base_angle)
                obj = build_drawer(l, w, h, t, left,
-                                     set_pose = [1.2, 0.0, -0.15],
+                                     set_pos = [1.2, 0.0, -0.15],
                                      set_rot = base_quat)
             else:
                 obj = build_drawer(l, w, h, t, left)
@@ -115,13 +115,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_toaster(mean_flag)
             if mean_flag:
                 obj = build_toaster(l, w, h, t, left,
-                                    set_pose = [1.5, 0.0, -0.3],
+                                    set_pos = [1.5, 0.0, -0.3],
                                     set_rot = [0.0, 0.0, 0.0, 1.0] )
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_toaster(l, w, h, t, left,
-                                      set_pose = [1.0, 0.0, -0.15],
+                                      set_pos = [1.0, 0.0, -0.15],
                                       set_rot = base_quat)
             else:
                 obj = build_toaster(l, w, h, t, left)
@@ -134,13 +134,13 @@ class SceneGenerator():
                 else:
                     left=False
                 obj = build_cabinet(l, w, h, t, left,
-                                    set_pose = [1.5, 0.0, -0.3],
+                                    set_pos = [1.5, 0.0, -0.3],
                                     set_rot = [0.0, 0.0, 0.0, 1.0] )
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_cabinet(l, w, h, t, left,
-                                      set_pose = [1.5, 0.0, -0.15],
+                                      set_pos = [1.5, 0.0, -0.15],
                                       set_rot = base_quat)
             else:
                 left = np.random.choice([True,False])
@@ -150,13 +150,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_cabinet2(mean_flag)
             if mean_flag:
                 obj = build_cabinet2(l, w, h, t, left,
-                                     set_pose = [1.5, 0.0, -0.3],
+                                     set_pos = [1.5, 0.0, -0.3],
                                      set_rot = [0.0, 0.0, 0.0, 1.0] )
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_cabinet2(l, w, h, t, left,
-                                      set_pose = [1.5, 0.0, -0.15],
+                                      set_pos = [1.5, 0.0, -0.15],
                                       set_rot = base_quat)
             else:
                 obj = build_cabinet2(l, w, h, t, left)
@@ -166,13 +166,13 @@ class SceneGenerator():
             if mean_flag:
 
                 obj = build_refrigerator(l, w, h, t, left,
-                                         set_pose = [1.5, 0.0, -0.3],
+                                         set_pos = [1.5, 0.0, -0.3],
                                          set_rot = [0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_refrigerator(l, w, h, t, left,
-                                      set_pose = [2.5, 0.0, -0.75],
+                                      set_pos = [2.5, 0.0, -0.75],
                                       set_rot = base_quat)
 
             else:
@@ -226,9 +226,9 @@ class SceneGenerator():
 
             params = get_cam_relative_params2(obj) # if 1DoF, params is length 10. If 2DoF, params is length 20.
 
-        embedding_and_params = np.concatenate((embedding, params, obj.pose, obj.rotation))
+        embedding_and_params = np.concatenate((embedding, params, obj.pos, obj.rot))
         # print('nqpos', n_qpos_variables)
-        # print(self.img_idx, obj.pose)
+        # print(self.img_idx, obj.pos)
         # print(embedding_and_params.shape)
         t = 0
         while t<4000:
@@ -287,7 +287,7 @@ class SceneGenerator():
 # shapes and stuff
 # if 1DoF, params is length 10. If 2DoF, params is length 20.
 # embedding is length 5: type, l, w, h, left
-# pose is length 3
+# pos is length 3
 # rotation is length 4
 # finally, q is length 1 or 2.
 # thus, for generating shape data:

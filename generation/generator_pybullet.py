@@ -1,3 +1,4 @@
+from shutil import rmtree
 import copy
 import csv
 import math
@@ -14,7 +15,7 @@ import pyro.distributions as dist
 import torch
 import transforms3d as tf3d
 from PIL import Image
-from tqdm import tqdm
+from tqdm import trange
 
 import generation.calibrations as calibrations
 from generation.mujocoCabinetParts import build_cabinet, sample_cabinet
@@ -58,7 +59,7 @@ class SceneGenerator():
             - masked: should the background of depth images be 0s or 1s?
         '''
         self.scenes = []
-        self.savedir = root_dir
+        self.root_dir = root_dir
         self.masked = masked
         self.img_idx = 0
         self.depth_data = []
@@ -87,16 +88,16 @@ class SceneGenerator():
 
     def sample_obj(self, obj_type, mean_flag, left_only, cute_flag=False):
         if obj_type == 'microwave':
-            l, w, h, t, left, mass = sample_microwave(mean_flag)
+            l, w, h, t, left, _ = sample_microwave(mean_flag)
             if mean_flag:
                 obj = build_microwave(l, w, h, t, left,
-                                      set_pose=[1.0, 0.0, -0.15],
+                                      set_pos=[1.0, 0.0, -0.15],
                                       set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_microwave(l, w, h, t, left,
-                                      set_pose=[1.0, 0.0, -0.15],
+                                      set_pos=[1.0, 0.0, -0.15],
                                       set_rot=base_quat)
             else:
                 obj = build_microwave(l, w, h, t, left)
@@ -108,13 +109,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_drawers(mean_flag)
             if mean_flag:
                 obj = build_drawer(l, w, h, t, left,
-                                   set_pose=[1.5, 0.0, -0.4],
+                                   set_pos=[1.5, 0.0, -0.4],
                                    set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_drawer(l, w, h, t, left,
-                                   set_pose=[1.2, 0.0, -0.15],
+                                   set_pos=[1.2, 0.0, -0.15],
                                    set_rot=base_quat)
             else:
                 obj = build_drawer(l, w, h, t, left)
@@ -126,13 +127,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_toaster(mean_flag)
             if mean_flag:
                 obj = build_toaster(l, w, h, t, left,
-                                    set_pose=[1.5, 0.0, -0.3],
+                                    set_pos=[1.5, 0.0, -0.3],
                                     set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_toaster(l, w, h, t, left,
-                                    set_pose=[1.0, 0.0, -0.15],
+                                    set_pos=[1.0, 0.0, -0.15],
                                     set_rot=base_quat)
             else:
                 obj = build_toaster(l, w, h, t, left)
@@ -148,13 +149,13 @@ class SceneGenerator():
                 else:
                     left = False
                 obj = build_cabinet(l, w, h, t, left,
-                                    set_pose=[1.5, 0.0, -0.3],
+                                    set_pos=[1.5, 0.0, -0.3],
                                     set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_cabinet(l, w, h, t, left,
-                                    set_pose=[1.5, 0.0, -0.15],
+                                    set_pos=[1.5, 0.0, -0.15],
                                     set_rot=base_quat)
             else:
                 left = np.random.choice([True, False])
@@ -167,13 +168,13 @@ class SceneGenerator():
             l, w, h, t, left, mass = sample_cabinet2(mean_flag)
             if mean_flag:
                 obj = build_cabinet2(l, w, h, t, left,
-                                     set_pose=[1.5, 0.0, -0.3],
+                                     set_pos=[1.5, 0.0, -0.3],
                                      set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_cabinet2(l, w, h, t, left,
-                                     set_pose=[1.5, 0.0, -0.15],
+                                     set_pos=[1.5, 0.0, -0.15],
                                      set_rot=base_quat)
             else:
                 obj = build_cabinet2(l, w, h, t, left)
@@ -186,13 +187,13 @@ class SceneGenerator():
             if mean_flag:
 
                 obj = build_refrigerator(l, w, h, t, left,
-                                         set_pose=[1.5, 0.0, -0.3],
+                                         set_pos=[1.5, 0.0, -0.3],
                                          set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
                 base_xyz, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_refrigerator(l, w, h, t, left,
-                                         set_pose=[2.5, 0.0, -0.75],
+                                         set_pos=[2.5, 0.0, -0.75],
                                          set_rot=base_quat)
 
             else:
@@ -205,20 +206,25 @@ class SceneGenerator():
             raise 'uh oh, object not implemented!'
         return obj, camera_dist, camera_height
 
-    def generate_scenes(self, N, objtype, write_csv=True, save_imgs=True, mean_flag=False, left_only=False, cute_flag=False, test=False, video=False):
-        fname = os.path.join(self.savedir, 'labels.csv')
+    def generate_scenes(self, N, obj_type, mean_flag=False, left_only=False, cute_flag=False, test=False, video=False):
+        self.save_dir = os.path.join(self.root_dir, obj_type)
+        if test:
+            self.save_dir += '-test'
+        if os.path.isdir(self.save_dir):
+            rmtree(self.save_dir)
+        os.makedirs(self.save_dir)
+        print('Generating data in %s' % self.save_dir)
+        fname = os.path.join(self.save_dir, 'labels.csv')
         self.img_idx = 0
-        with open(fname, 'a') as csvfile:
+        with open(fname, 'w') as csvfile:
             writ = csv.writer(csvfile, delimiter=',')
-            writ.writerow(['Object Name', 'Joint Type', 'Image Index', 'l_1', 'l_2', 'l_3', 'm_1', 'm_2', 'm_3', ])
-            for i in tqdm(range(N)):
-                obj, camera_dist, camera_height = self.sample_obj(objtype, mean_flag, left_only, cute_flag=cute_flag)
-                xml = obj.xml
-                fname = os.path.join(self.savedir, 'scene' + str(i).zfill(6) + '.xml')
-                self.write_urdf(fname, xml)
+            writ.writerow(['Object Name', 'Joint Type', 'Image Index', 'l_1', 'l_2', 'l_3', 'm_1', 'm_2', 'm_3'])
+            for i in trange(N):
+                obj, camera_dist, camera_height = self.sample_obj(obj_type, mean_flag, left_only, cute_flag=cute_flag)
+                fname = os.path.join(self.save_dir, 'scene' + str(i).zfill(6) + '.xml')
+                self.write_urdf(fname, obj.xml)
                 self.scenes.append(fname)
                 self.take_images(fname, obj, camera_dist, camera_height, obj.joint_index, writ, test=test, video=video)
-        return
 
     def take_images(self, filename, obj, camera_dist, camera_height, joint_index, writer, img_idx=0, debug=False, test=False, video=False):
 
@@ -350,7 +356,7 @@ class SceneGenerator():
                     # flags=pb.ER_USE_PROJECTIVE_TEXTURE,
                     # projectiveTextureView=viewMat,
                     # projectiveTextureProj=projMat
-                    )
+                )
 
                 img = np.asarray(img).reshape((height, width, 4))
                 depth = np.asarray(depth).reshape((height, width))
@@ -363,7 +369,7 @@ class SceneGenerator():
                     state['width'] = IMG_WIDTH
                     state['mjcf'] = filename
 
-                    config_name = os.path.join(self.savedir, 'config' + str(self.img_idx).zfill(6) + '.pkl')
+                    config_name = os.path.join(self.save_dir, 'config' + str(self.img_idx).zfill(6) + '.pkl')
                     f = open(config_name, "wb")
                     pickle.dump(state, f)
                     f.close()
@@ -384,8 +390,8 @@ class SceneGenerator():
                     #img = vertical_flip(img)
 
                     img = white_bg(img)
-                    imgfname = os.path.join(self.savedir, 'img' + str(self.img_idx).zfill(6) + '.png')
-                    depth_imgfname = os.path.join(self.savedir, 'depth_img' + str(self.img_idx).zfill(6) + '.png')
+                    imgfname = os.path.join(self.save_dir, 'img' + str(self.img_idx).zfill(6) + '.png')
+                    depth_imgfname = os.path.join(self.save_dir, 'depth_img' + str(self.img_idx).zfill(6) + '.png')
                     integer_depth = norm_depth * 255
                     cv2.imwrite(imgfname, img)
                     cv2.imwrite(depth_imgfname, integer_depth)
@@ -401,14 +407,14 @@ class SceneGenerator():
                 l = np.array(list(large_door_joint_info[13]))
                 m = np.cross(large_door_joint_info[14], large_door_joint_info[13])
 
-                depthfname = os.path.join(self.savedir, 'depth' + str(self.img_idx).zfill(6) + '.pt')
+                depthfname = os.path.join(self.save_dir, 'depth' + str(self.img_idx).zfill(6) + '.pt')
                 torch.save(torch.tensor(norm_depth.copy()), depthfname)
                 row = np.concatenate((np.array([obj.name, obj.joint_type, self.img_idx]), l, m))  # SAVE SCREW REPRESENTATION HERE
                 writer.writerow(row)
 
                 if video:
                     increments = {j: 0 for j in range(pb.getNumJoints(objId))}
-                    videoFolderFname = os.path.join(self.savedir, 'video_for_img_' + str(self.img_idx).zfill(6))
+                    videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(self.img_idx).zfill(6))
                     os.makedirs(videoFolderFname, exist_ok=False)
                     for frame_idx in range(90):
                         for j in range(pb.getNumJoints(objId)):
