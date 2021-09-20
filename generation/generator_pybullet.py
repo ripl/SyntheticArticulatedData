@@ -61,10 +61,10 @@ class SceneGenerator():
         self.scenes = []
         self.root_dir = root_dir
         self.masked = masked
-        self.img_idx = 0
         self.depth_data = []
         self.debugging = debug_flag
 
+        # TODO: these seem to be always overrided
         # Camera external settings
         self.viewMatrix = pb.computeViewMatrix(
             cameraEyePosition=[4, 0, 1],
@@ -80,8 +80,6 @@ class SceneGenerator():
             farVal=8.1
         )
 
-        print(root_dir)
-
     def write_urdf(self, filename, xml):
         with open(filename, "w") as text_file:
             text_file.write(xml)
@@ -94,7 +92,7 @@ class SceneGenerator():
                                       set_pos=[1.0, 0.0, -0.15],
                                       set_rot=[0.0, 0.0, 0.0, 1.0])
             elif cute_flag:
-                base_xyz, base_angle = sample_pose()
+                _, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_microwave(l, w, h, t, left,
                                       set_pos=[1.0, 0.0, -0.15],
@@ -213,11 +211,10 @@ class SceneGenerator():
         if os.path.isdir(self.save_dir):
             rmtree(self.save_dir)
         os.makedirs(self.save_dir)
-        print('Generating data in %s' % self.save_dir)
+        print('Generating data in %s...' % self.save_dir)
         fname = os.path.join(self.save_dir, 'labels.csv')
-        self.img_idx = 0
-        with open(fname, 'w') as csvfile:
-            writ = csv.writer(csvfile, delimiter=',')
+        with open(fname, 'w') as f:
+            writ = csv.writer(f, delimiter=',')
             writ.writerow(['Object Name', 'Joint Type', 'Image Index', 'l_1', 'l_2', 'l_3', 'm_1', 'm_2', 'm_3'])
             for i in trange(N):
                 obj, camera_dist, camera_height = self.sample_obj(obj_type, mean_flag, left_only, cute_flag=cute_flag)
@@ -288,7 +285,7 @@ class SceneGenerator():
             cameraUpVector=cameraUpVector
         )
         startPos = [0, 0, 0]
-        state = {'startPos': startPos, 'eulerOrientation': [], 'joints': [], 'joint_index': joint_index, 'img_idx': self.img_idx}
+        state = {'startPos': startPos, 'eulerOrientation': [], 'joints': [], 'joint_index': joint_index, 'img_idx': img_idx}
         # obj_rotation = np.random.uniform(-np.pi/4.,np.pi/4.)
         obj_rotation = 0
         startOrientation = pb.getQuaternionFromEuler([0, 0, obj_rotation])
@@ -369,7 +366,7 @@ class SceneGenerator():
                     state['width'] = IMG_WIDTH
                     state['mjcf'] = filename
 
-                    config_name = os.path.join(self.save_dir, 'config' + str(self.img_idx).zfill(6) + '.pkl')
+                    config_name = os.path.join(self.save_dir, 'config' + str(img_idx).zfill(6) + '.pkl')
                     f = open(config_name, "wb")
                     pickle.dump(state, f)
                     f.close()
@@ -390,8 +387,8 @@ class SceneGenerator():
                     #img = vertical_flip(img)
 
                     img = white_bg(img)
-                    imgfname = os.path.join(self.save_dir, 'img' + str(self.img_idx).zfill(6) + '.png')
-                    depth_imgfname = os.path.join(self.save_dir, 'depth_img' + str(self.img_idx).zfill(6) + '.png')
+                    imgfname = os.path.join(self.save_dir, 'img' + str(img_idx).zfill(6) + '.png')
+                    depth_imgfname = os.path.join(self.save_dir, 'depth_img' + str(img_idx).zfill(6) + '.png')
                     integer_depth = norm_depth * 255
                     cv2.imwrite(imgfname, img)
                     cv2.imwrite(depth_imgfname, integer_depth)
@@ -407,14 +404,14 @@ class SceneGenerator():
                 l = np.array(list(large_door_joint_info[13]))
                 m = np.cross(large_door_joint_info[14], large_door_joint_info[13])
 
-                depthfname = os.path.join(self.save_dir, 'depth' + str(self.img_idx).zfill(6) + '.pt')
+                depthfname = os.path.join(self.save_dir, 'depth' + str(img_idx).zfill(6) + '.pt')
                 torch.save(torch.tensor(norm_depth.copy()), depthfname)
-                row = np.concatenate((np.array([obj.name, obj.joint_type, self.img_idx]), l, m))  # SAVE SCREW REPRESENTATION HERE
+                row = np.concatenate((np.array([obj.name, obj.joint_type, img_idx]), l, m))  # SAVE SCREW REPRESENTATION HERE
                 writer.writerow(row)
 
                 if video:
                     increments = {j: 0 for j in range(pb.getNumJoints(objId))}
-                    videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(self.img_idx).zfill(6))
+                    videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(img_idx).zfill(6))
                     os.makedirs(videoFolderFname, exist_ok=False)
                     for frame_idx in range(90):
                         for j in range(pb.getNumJoints(objId)):
@@ -444,4 +441,4 @@ class SceneGenerator():
 
                         torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
 
-                self.img_idx += 1
+                img_idx += 1

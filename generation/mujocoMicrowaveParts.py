@@ -18,13 +18,13 @@ d_thic = dist.Uniform(0.01 / 2, 0.02 / 2)
 
 def sample_microwave(mean_flag):
     if mean_flag:
-        print('using mean microwave')
+        print('Using mean microwave')
         length = d_len.mean
         width = d_width.mean
         height = d_height.mean
         thickness = d_thic.mean
     else:
-        length = pyro.sample("length", d_len).item()
+        length = pyro.sample('length', d_len).item()
         width = pyro.sample('width', d_width).item()
         height = pyro.sample('height', d_height).item()
         thickness = pyro.sample('thic', d_thic).item()
@@ -33,25 +33,21 @@ def sample_microwave(mean_flag):
     return length, width, height, thickness, left, mass
 
 
-def sample_handle(side_height):
+def sample_handle(height):
     HANDLE_LEN = pyro.sample('hl', dist.Uniform(0.01, 0.03)).item()
     HANDLE_WIDTH = pyro.sample('hw', dist.Uniform(0.01, 0.03)).item()
-    HANDLE_HEIGHT = pyro.sample('hh', dist.Uniform(0.1, side_height)).item()
+    HANDLE_HEIGHT = pyro.sample('hh', dist.Uniform(0.1, height)).item()
     return HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT
 
 
-def const_handle(side_height):
+def const_handle(height):
     HANDLE_LEN = 0.01
     HANDLE_WIDTH = 0.01
-    HANDLE_HEIGHT = side_height
+    HANDLE_HEIGHT = height
     return HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT
 
 
 def build_microwave(length, width, height, thic, left, set_pos=None, set_rot=None):
-    base_length = length
-    base_width = width
-    base_height = thic
-
     if set_pos is None:
         base_xyz, base_angle = sample_pose()
         base_quat = angle_to_quat(base_angle)
@@ -62,33 +58,30 @@ def build_microwave(length, width, height, thic, left, set_pos=None, set_rot=Non
     base_origin = make_string(tuple(base_xyz))
     base_orientation = make_quat_string(tuple(base_quat))
 
-    base_size = make_string((base_length, base_width, base_height))
-    side_length = length
-    side_width = thic
-    side_height = height
-    side_size = make_string((side_length, side_width, side_height))
+    base_size = make_string((length, width, thic))
+    side_size = make_string((length, thic, height))
 
-    back_size = make_string((side_width, base_width, side_height))
+    back_size = make_string((thic, width, height))
     top_size = base_size
-    door_size = make_string((side_width, base_width * 3 / 4, side_height))
+    door_size = make_string((thic, width * 3 / 4, height))
 
     left_origin = make_string((0, -width + thic, height))
     right_origin = make_string((0, width - thic, height))
     top_origin = make_string((0, 0, height * 2))
-    back_origin = make_string((-base_length + thic, 0.0, height))
+    back_origin = make_string((-length + thic, 0.0, height))
 
     kw_multiplier = 1 / 4
-    keypad_size = make_string((side_length - thic, base_width * kw_multiplier, side_height - thic))
-    keypad_origin = make_string((thic, base_width - base_width * kw_multiplier - 0.001, side_height))
+    keypad_size = make_string((length - thic, width * kw_multiplier, height - thic))
+    keypad_origin = make_string((thic, width - width * kw_multiplier - 0.001, height))
 
-    door_origin = make_string((0.0, base_width * 3 / 4, 0.0))
-    hinge_origin = make_string((base_length, -base_width, side_height))
-    params = [[base_length, -base_width, side_height], [0.0, base_width, 0.0]]
+    door_origin = make_string((0.0, width * 3 / 4, 0.0))
+    hinge_origin = make_string((length, -width, height))
+    params = [[length, -width, height], [0.0, width, 0.0]]
     hinge_range = '"-2.3 0"'
 
-    HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT = const_handle(side_height)
+    HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT = const_handle(height)
     HANDLE_X = HANDLE_LEN
-    HANDLE_Y = 2 * base_width * 3 / 4 - 0.03
+    HANDLE_Y = 2 * width * 3 / 4 - 0.03
     HANDLE_Z = 0
 
     handle_origin = make_string((HANDLE_X, HANDLE_Y, HANDLE_Z))

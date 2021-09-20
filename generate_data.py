@@ -1,24 +1,17 @@
 import argparse
 import os
-from shutil import rmtree
 from generation.inspect_data import make_animations
 
 
 def main(args):
-    # initialize Generator
+    # initialize generator
     if args.pybullet:
         from generation.generator_pybullet import SceneGenerator
-        scene_gen = SceneGenerator(root_dir=args.dir,
-                                   debug_flag=args.debug,
-                                   masked=args.masked)
     else:
         from generation.generator import SceneGenerator
-        scene_gen = SceneGenerator(root_dir=args.dir,
-                                   debug_flag=args.debug,
-                                   masked=args.masked)
-
-    # make root directory
-    os.makedirs(args.dir, exist_ok=True)
+    scene_gen = SceneGenerator(root_dir=args.dir,
+                               debug_flag=args.debug,
+                               masked=args.masked)
 
     if not args.eval_only:
         # generate train scenes

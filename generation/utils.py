@@ -36,11 +36,11 @@ def get_cam_params(cam='Kinect'):
 
 
 def make_single_string(param):
-    return '" %f "' % param
+    return '"%f"' % param
 
 
 def make_string(param_tuple):
-    return '" %f %f %f "' % param_tuple
+    return '"%f %f %f"' % param_tuple
 
 
 def angle_to_quat(angle, axis=[0, 0, 1]):
@@ -58,7 +58,7 @@ def shuffle_quat(quat):
 
 def make_quat_string(quat):
     # quat=shuffle_quat(quat)
-    return ' " %f %f %f %f" ' % tuple(quat)
+    return '"%f %f %f %f"' % tuple(quat)
 
 
 def get_cam_relative_params(obj):
