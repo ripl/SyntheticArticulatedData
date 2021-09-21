@@ -63,44 +63,32 @@ def build_microwave(length, width, height, thic, left, set_pos=None, set_rot=Non
 
     back_size = make_string((thic, width, height))
     top_size = base_size
-    door_size = make_string((thic, width * 3 / 4, height))
+    door_size = make_string((thic, width * 0.75, height))
 
     left_origin = make_string((0, -width + thic, height))
     right_origin = make_string((0, width - thic, height))
     top_origin = make_string((0, 0, height * 2))
     back_origin = make_string((-length + thic, 0.0, height))
 
-    kw_multiplier = 1 / 4
-    keypad_size = make_string((length - thic, width * kw_multiplier, height - thic))
-    keypad_origin = make_string((thic, width - width * kw_multiplier - 0.001, height))
+    keypad_size = make_string((length - thic, width * 0.25 - thic, height - thic))
+    keypad_origin = make_string((thic, width * 0.75 - thic, height))
 
-    door_origin = make_string((0.0, width * 3 / 4, 0.0))
     hinge_origin = make_string((length, -width, height))
-    params = [[length, -width, height], [0.0, width, 0.0]]
-    hinge_range = '"-2.3 0"'
+    hinge_range = '"-2.3 0"'    # TODO
+    door_origin = make_string((0.0, width * 0.75, 0.0))
 
     HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT = const_handle(height)
-    HANDLE_X = HANDLE_LEN
-    HANDLE_Y = 2 * width * 3 / 4 - 0.03
-    HANDLE_Z = 0
-
-    handle_origin = make_string((HANDLE_X, HANDLE_Y, HANDLE_Z))
+    handle_origin = make_string((HANDLE_LEN + thic, width * 1.25, 0))
     handle_size = make_string((HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT))
 
-    geometry = np.array([length, width, height, left])  # length = 4
-    parameters = np.array(params)  # shape = 2*3, length = 6
     znear, zfar, fovy = get_cam_params()
-    cab = ArticulatedObject(0, geometry, parameters, '', base_xyz, base_quat)
-
-    # FOR PY-BULLET
-    cab.control = [0, 0, 0, 0, 0, -2, 0, 0]
-    cab.joint_index = 5
-    cab.name = 'microwave'
-    cab.joint_type = 'revolute'
-
     znear_str = make_single_string(znear)
     zfar_str = make_single_string(zfar)
     fovy_str = make_single_string(fovy)
+
+    geometry = np.array([length, width, height, left])  # length = 4
+    parameters = np.array([[length, -width, height], [0.0, width, 0.0]])  # shape = 2*3, length = 6
+    cab = ArticulatedObject(0, geometry, parameters, '', base_xyz, base_quat)
 
     post_params = get_cam_relative_params2(cab)
     axis = post_params[:3]
@@ -116,6 +104,11 @@ def build_microwave(length, width, height, thic, left, set_pos=None, set_rot=Non
                     hinge_origin, hinge_range,
                     door_origin, door_size, handle_origin, handle_size,
                     znear_str, zfar_str, fovy_str)
+
+    cab.control = [0, 0, 0, 0, 0, -2, 0, 0]
+    cab.joint_index = 5
+    cab.name = 'microwave'
+    cab.joint_type = 'revolute'
     cab.xml = xml
     return cab
 
@@ -130,20 +123,20 @@ def write_xml(ax_string, axquat_string, base_origin, base_orientation, base_size
               znear, zfar, fovy):
     return '''
 <mujoco model="cabinet">
-    <compiler angle="radian" eulerseq='zxy' />
-    <option gravity = "0 0 0" />
+    <compiler angle="radian" eulerseq='zxy'/>
+    <option gravity="0 0 0"/>
     <option>
-        <flag contact = "disable"/>
+        <flag contact="disable"/>
     </option>
-    <statistic	extent="1.0" center="0.0 0.0 0.0"/>
+    <statistic extent="1.0" center="0.0 0.0 0.0"/>
     <visual>
         <map fogstart="3" fogend="5" force="0.1" znear=''' + znear + ''' zfar=''' + zfar + '''/>
     </visual>
-    <size njmax="500" nconmax="100" />
+    <size njmax="500" nconmax="100"/>
     <actuator>
         <velocity joint="bottom_left_hinge" name="viva_revolution" kv='10'></velocity>
         <!--position joint="bottom_left_hinge" name="viva_la_position" kp='10'></position-->
-        <!--velocity joint="cam_j" name="moving_cam" kv="10" ></velocity-->
+        <!--velocity joint="cam_j" name="moving_cam" kv="10"></velocity-->
     </actuator>
     <asset>
         <texture builtin="flat" name="tabletex" height="32" width="32" rgb1="1 1 1" type="cube"></texture>
@@ -161,52 +154,52 @@ def write_xml(ax_string, axquat_string, base_origin, base_orientation, base_size
     </asset>
     <worldbody>
         <body name="cabinet_bottom" pos=''' + base_origin + ''' quat=''' + base_orientation + '''>
-            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
+            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
             <geom size=''' + base_size + ''' type="box" material="geomObj" name="b"/>
             <body name="cabinet_left" pos=''' + left_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
-                <geom size=''' + side_size + ''' type="box" material="geomObj" name="c" />
+                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+                <geom size=''' + side_size + ''' type="box" material="geomObj" name="c"/>
             </body>
             <body name="cabinet_right" pos=''' + right_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
-                <geom size=''' + side_size + ''' type="box" material="geomObj" name="d" />
+                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+                <geom size=''' + side_size + ''' type="box" material="geomObj" name="d"/>
             </body>
             <body name="cabinet_top" pos=''' + top_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
+                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
                 <geom size=''' + top_size + ''' type="box" material="geomObj" name="e"/>
             </body>
             <body name="cabinet_back" pos=''' + back_origin + ''' >
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
-                <geom size=''' + back_size + ''' type="box" material="geomObj" name="f" />
+                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+                <geom size=''' + back_size + ''' type="box" material="geomObj" name="f"/>
             </body>
             <body name="cabinet_keypad" pos=''' + keypad_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
-                <geom size=''' + keypad_size + ''' type="box" material="geomKeypad" name="keypizzlemynizzle" />
+                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+                <geom size=''' + keypad_size + ''' type="box" material="geomKeypad" name="keypizzlemynizzle"/>
             </body>
             <body name="cabinet_left_hinge" pos=''' + hinge_origin + '''>
-                <inertial pos=''' + door_origin + ''' mass="1" diaginertia="1 1 1" />
-                <joint name="bottom_left_hinge" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range=''' + hinge_range + ''' />
+                <inertial pos=''' + door_origin + ''' mass="1" diaginertia="1 1 1"/>
+                <joint name="bottom_left_hinge" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range=''' + hinge_range + '''/>
                 <geom size=''' + door_size + ''' pos=''' + door_origin + ''' type="box" material="geomObj" name="g"/>
                 <body name="handle_link" pos=''' + handle_origin + '''>
-                    <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
+                    <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
                     <geom size=''' + handle_size + ''' type="box" material="geomHandle" name="h"/>
                 </body>
             </body>
         </body>
-        <body name="external_camera_body_0" pos="0.0 0 0.00" >
-            <camera euler="-1.57 1.57 0.0" fovy=''' + fovy + ''' name="external_camera_0" pos="0.0 0 0"></camera>
-            <inertial pos= " 0.00 0.0 0.000000 " mass="1" diaginertia="1 1 1" />
-            <joint name="cam_j" pos="0.0 0 0" axis = "1 0 0" type="free" />
+        <body name="external_camera_body_0" pos="0 0 0">
+            <camera euler="-1.57 1.57 0.0" fovy=''' + fovy + ''' name="external_camera_0" pos="0 0 0"></camera>
+            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+            <joint name="cam_j" pos="0 0 0" axis="1 0 0" type="free"/>
         </body>
         <!--body name="TESTING" pos=''' + ax_string + ''' quat=''' + axquat_string + '''>
             <geom size="0.025" type="sphere" rgba="1 1 1 1"/>
-            <body name="x_axis" >
+            <body name="x_axis">
                 <geom size="0.01" fromto="0 0 0 0.2 0 0" type="cylinder" rgba="1 0 0 1"/>
             </body>
-            <body name="y_axis" >
+            <body name="y_axis">
                 <geom size="0.01" fromto="0 0 0 0 0.2 0" type="cylinder" rgba="0 1 0 1"/>
             </body>
-            <body name="z_axis" >
+            <body name="z_axis">
                 <geom size="0.01" fromto="0 0 0 0 0 0.2" type="cylinder" rgba="0 0 1 1"/>
             </body>
         </body-->

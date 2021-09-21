@@ -20,9 +20,6 @@ def write_urdf(filename, xml):
 
 def get_cam_params(cam='Kinect'):
     if cam == 'Kinect':
-        # znear = pyro.sample("znear",dist.Uniform(0.09, 0.11)).item()
-        # zfar = pyro.sample("zfar", dist.Uniform(11,13)).item()
-        # fovy = pyro.sample("fovy", dist.Uniform(66, 74)).item()
         znear = calibrations.znear
         zfar = calibrations.zfar
         fovy = calibrations.color_fov_y
@@ -31,7 +28,7 @@ def get_cam_params(cam='Kinect'):
         zfar = pyro.sample("zfar", dist.Uniform(9, 11)).item()
         fovy = pyro.sample("fovy", dist.Uniform(84, 89)).item()
     else:
-        raise 'check your camera name'
+        raise 'check camera name'
     return znear, zfar, fovy
 
 
@@ -51,13 +48,7 @@ def angle_to_quat(angle, axis=[0, 0, 1]):
     return np.array([qw, qx, qy, qz])
 
 
-def shuffle_quat(quat):
-    # convert quaternion from wxyz to zxyw
-    return [quat[3], quat[1], quat[2], quat[0]]
-
-
 def make_quat_string(quat):
-    # quat=shuffle_quat(quat)
     return '"%f %f %f %f"' % tuple(quat)
 
 
@@ -93,10 +84,9 @@ def get_cam_relative_params2(obj):
     door = obj.params[1]
 
     axis_in_obj_frame = [axis[0], axis[1], axis[2], 1.0]
-    axis_in_world_frame = (np.matmul(obj_transform, axis_in_obj_frame))[:3]
-    ax_quat = obj.rot  # [w, qx, qy, qz]
+    axis_in_world_frame = np.matmul(obj_transform, axis_in_obj_frame)[:3]
 
-    axis_and_quat = np.append(axis_in_world_frame, ax_quat)
+    axis_and_quat = np.append(axis_in_world_frame, obj.rot)
     axis_and_door = np.append(axis_and_quat, door)
 
     # assert len(axis_and_door) == 10

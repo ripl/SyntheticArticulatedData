@@ -224,26 +224,25 @@ class SceneGenerator():
                 self.take_images(fname, obj, camera_dist, camera_height, obj.joint_index, writ, test=test, video=video)
 
     def take_images(self, filename, obj, camera_dist, camera_height, joint_index, writer, img_idx=0, debug=False, test=False, video=False):
-
-        objId, _ = pb.loadMJCF(filename)
+        obj_id, _ = pb.loadMJCF(filename)
 
         # create normal texture image
         # x, y = np.meshgrid(np.linspace(-1, 1, 1280), np.linspace(-1, 1, 1280))
-        x, y = np.meshgrid(np.linspace(-1, 1, 300), np.linspace(-1, 1, 300))
-        texture_img = (72 * (np.stack([np.cos(30 * x), np.cos(30 * y), np.cos(30 * (x + y))]) + 2)).astype(np.uint8).transpose(1, 2, 0)
-        texture_img = Image.fromarray(texture_img)
-        fname = 'normal_texture.png'
-        texture_img.save(fname)
-        textureId = pb.loadTexture(fname, physicsClientId=pb_client)
+        # x, y = np.meshgrid(np.linspace(-1, 1, 300), np.linspace(-1, 1, 300))
+        # texture_img = (72 * (np.stack([np.cos(30 * x), np.cos(30 * y), np.cos(30 * (x + y))]) + 2)).astype(np.uint8).transpose(1, 2, 0)
+        # texture_img = Image.fromarray(texture_img)
+        # fname = 'normal_texture.png'
+        # texture_img.save(fname)
+        # textureId = pb.loadTexture(fname, physicsClientId=pb_client)
 
-        # create gaussian texture image
-        SHAPE = (100, 200)
-        noise = np.random.normal(255. / 1, 255. / 15 * 10, SHAPE)  # beyond this, it will be too
+        # create gaussian noise texture image
+        SHAPE = (300, 300)
+        noise = np.random.normal(255, 180, SHAPE)
         image_noise = Image.fromarray(noise)
         image_noise = image_noise.convert('RGB')
-        fname2 = "gaussian_noise.png"
-        image_noise.save(fname2)
-        textureId2 = pb.loadTexture(fname2, physicsClientId=pb_client)
+        fname = "gaussian_noise.png"
+        image_noise.save(fname)
+        texture_id = pb.loadTexture(fname, physicsClientId=pb_client)
 
         # apply texture to the object way: idea one
         # planeVis = pb.createVisualShape(shapeType=pb.GEOM_MESH,
@@ -260,12 +259,12 @@ class SceneGenerator():
         #                     physicsClientId=pb_client)
 
         # change visual shape on all faces: idea two
-        n_joints = pb.getNumJoints(objId)
+        n_joints = pb.getNumJoints(obj_id)
         colors = np.random.random_sample((n_joints + 1, 3))
         colors = np.hstack((colors, np.ones((n_joints + 1, 1))))
         for idx in range(-1, n_joints):
             color = colors[idx + 1]
-            pb.changeVisualShape(objId, idx, textureUniqueId=textureId2, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
+            pb.changeVisualShape(obj_id, idx, textureUniqueId=texture_id, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
 
         # apply texture to the object one by one: idea two
         # pb.changeVisualShape(objId, -1, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #bottom
@@ -299,10 +298,10 @@ class SceneGenerator():
             pb.stepSimulation()
 
             if t % 250 == 0:
-                pb.resetBasePositionAndOrientation(objId, startPos, startOrientation)
+                pb.resetBasePositionAndOrientation(obj_id, startPos, startOrientation)
 
                 # Update joint extension randomly between 0 and 120
-                for j in range(pb.getNumJoints(objId)):
+                for j in range(pb.getNumJoints(obj_id)):
                     # if j != 5:
                     #     continue
                     # if obj.control[j] < 0:
@@ -311,7 +310,7 @@ class SceneGenerator():
                     #     rotation = np.random.uniform(0, obj.control[j])
                     rotation = (2 - t / 4000) * np.pi
                     state['joints'].append(rotation)
-                    pb.resetJointState(objId, j, rotation)
+                    pb.resetJointState(obj_id, j, rotation)
 
                 #########################
                 IMG_WIDTH = calibrations.sim_width
@@ -399,7 +398,7 @@ class SceneGenerator():
                 if joint_index is None:
                     raise Exception("Joint index not defined! Are you simulating a 2DOF object? (Don't do that yet)")
 
-                large_door_joint_info = pb.getJointInfo(objId, joint_index)
+                large_door_joint_info = pb.getJointInfo(obj_id, joint_index)
                 p = np.array(list(large_door_joint_info[14]))
                 l = np.array(list(large_door_joint_info[13]))
                 m = np.cross(large_door_joint_info[14], large_door_joint_info[13])
@@ -410,12 +409,12 @@ class SceneGenerator():
                 writer.writerow(row)
 
                 if video:
-                    increments = {j: 0 for j in range(pb.getNumJoints(objId))}
+                    increments = {j: 0 for j in range(pb.getNumJoints(obj_id))}
                     videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(img_idx).zfill(6))
                     os.makedirs(videoFolderFname, exist_ok=False)
                     for frame_idx in range(90):
-                        for j in range(pb.getNumJoints(objId)):
-                            pb.resetJointState(objId, j, increments[j])
+                        for j in range(pb.getNumJoints(obj_id)):
+                            pb.resetJointState(obj_id, j, increments[j])
                             increments[j] += obj.control[j] / 90
 
                         _, _, rgbFrame, depthFrame, _ = pb.getCameraImage(
