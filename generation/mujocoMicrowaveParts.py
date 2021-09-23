@@ -154,7 +154,7 @@ def write_xml(ax_string, axquat_string, base_origin, base_orientation, base_size
     </asset>
     <worldbody>
         <body name="cabinet_bottom" pos=''' + base_origin + ''' quat=''' + base_orientation + '''>
-            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
+            <inertial pos="0 0 0" mass="0" diaginertia="1 1 1"/>
             <geom size=''' + base_size + ''' type="box" material="geomObj" name="b"/>
             <body name="cabinet_left" pos=''' + left_origin + '''>
                 <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>

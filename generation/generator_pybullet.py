@@ -30,7 +30,8 @@ from generation.mujocoToasterOvenParts import build_toaster, sample_toaster
 from generation.utils import *
 
 pb_client = pb.connect(pb.GUI)
-pb.setGravity(0, 0, -100)
+# pb.setGravity(0, 0, -100)
+pb.setRealTimeSimulation(True)
 
 
 def white_bg(img):
@@ -244,45 +245,24 @@ class SceneGenerator():
         image_noise.save(fname)
         texture_id = pb.loadTexture(fname, physicsClientId=pb_client)
 
-        # apply texture to the object way: idea one
-        # planeVis = pb.createVisualShape(shapeType=pb.GEOM_MESH,
-        #                        fileName=filename,
-        #                        rgbaColor=[168 / 255.0, 164 / 255.0, 92 / 255.0, 1.0],
-        #                        specularColor=[0.5, 0.5, 0.5],
-        #                        physicsClientId=pb_client)
-
-        # pb.changeVisualShape(planeVis,
-        #                     -1,
-        #                     textureUniqueId=textureId,
-        #                     rgbaColor=[1, 1, 1, 1],
-        #                     specularColor=[1, 1, 1, 1],
-        #                     physicsClientId=pb_client)
-
-        # change visual shape on all faces: idea two
         n_joints = pb.getNumJoints(obj_id)
         colors = np.random.random_sample((n_joints + 1, 3))
         colors = np.hstack((colors, np.ones((n_joints + 1, 1))))
         for idx in range(-1, n_joints):
+            if idx == joint_index:
+                continue
             color = colors[idx + 1]
             pb.changeVisualShape(obj_id, idx, textureUniqueId=texture_id, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
 
-        # apply texture to the object one by one: idea two
-        # pb.changeVisualShape(objId, -1, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #bottom
-        # pb.changeVisualShape(objId, 0, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #left side
-        # pb.changeVisualShape(objId, 1, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #right side
-        # pb.changeVisualShape(objId, 2, textureUniqueId=textureId2, rgbaColor=[1, 1, 1, 1], specularColor=[1, 1, 1, 1], physicsClientId=pb_client) #top
-
-        # change visual shape without the texture add
-        # pb.changeVisualShape(objId, -1, rgbaColor=[168 / 255.0, 164 / 255.0, 92 / 255.0, 1.0], specularColor=[0.5, 0.5, 0.5])
-
         theta = np.random.uniform(low=-np.pi / 3, high=np.pi / 3)
         cameraEyePosition = np.array([camera_dist * np.cos(theta), camera_dist * np.sin(theta), 1])
-        cameraUpVector = np.array([-np.cos(theta), -np.sin(theta), 1])
+        cameraUpVector = np.array([0, 0, 1])
         self.viewMatrix = pb.computeViewMatrix(
             cameraEyePosition=cameraEyePosition,
             cameraTargetPosition=[0, 0, camera_height],
             cameraUpVector=cameraUpVector
         )
+
         startPos = [0, 0, 0]
         state = {'startPos': startPos, 'eulerOrientation': [], 'joints': [], 'joint_index': joint_index, 'img_idx': img_idx}
         # obj_rotation = np.random.uniform(-np.pi/4.,np.pi/4.)
@@ -290,154 +270,137 @@ class SceneGenerator():
         startOrientation = pb.getQuaternionFromEuler([0, 0, obj_rotation])
         state['eulerOrientation'] = [0, 0, obj_rotation]
 
-        # pb.resetJointState(objId, 5, np.pi*2)
-        # pb.setJointMotorControl2(objId, 5, controlMode=pb.POSITION_CONTROL, targetPosition=np.pi*0.01, force=0.001)
-
+        pb.resetBasePositionAndOrientation(obj_id, startPos, startOrientation)
+        pb.setJointMotorControl2(obj_id, joint_index, controlMode=pb.VELOCITY_CONTROL, targetVelocity=-1, force=500)
         # Take 16 pictures, permuting orientation and joint extension
-        for t in range(4000):
-            pb.stepSimulation()
+        for t in range(32):
+            #########################
+            IMG_WIDTH = calibrations.sim_width
+            IMG_HEIGHT = calibrations.sim_height
+            #########################
 
-            if t % 250 == 0:
-                pb.resetBasePositionAndOrientation(obj_id, startPos, startOrientation)
+            # # Take picture without texture
+            # width, height, img, depth, segImg = pb.getCameraImage(
+            #     IMG_WIDTH, # width
+            #     IMG_HEIGHT, # height
+            #     self.viewMatrix,
+            #     self.projectionMatrix,
+            #     lightDirection=[camera_dist, 0, camera_height+1], # light source
+            #     shadow=1, # include shadows
+            # )
 
-                # Update joint extension randomly between 0 and 120
-                for j in range(pb.getNumJoints(obj_id)):
-                    # if j != 5:
-                    #     continue
-                    # if obj.control[j] < 0:
-                    #     rotation = np.random.uniform(obj.control[j], 0)
-                    # else:
-                    #     rotation = np.random.uniform(0, obj.control[j])
-                    rotation = (2 - t / 4000) * np.pi
-                    state['joints'].append(rotation)
-                    pb.resetJointState(obj_id, j, rotation)
+            # use projective texture, it's more robust, applies texture on all sides at once
+            # viewMat = [
+            #     0.642787516117096, -0.4393851161003113, 0.6275069713592529, 0.0, 0.766044557094574,
+            #     0.36868777871131897, -0.5265407562255859, 0.0, -0.0, 0.8191521167755127, 0.5735764503479004,
+            #     0.0, 2.384185791015625e-07, 2.384185791015625e-07, -5.000000476837158, 1.0
+            # ]
+            # projMat = [
+            #     0.7499999403953552, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0000200271606445, -1.0,
+            #     0.0, 0.0, -0.02000020071864128, 0.0
+            # ]
 
-                #########################
-                IMG_WIDTH = calibrations.sim_width
-                IMG_HEIGHT = calibrations.sim_height
-                #########################
+            # cam = pb.getDebugVisualizerCamera()
+            # viewMat = cam[2]
+            # projMat = cam[3]
 
-                # # Take picture without texture
-                # width, height, img, depth, segImg = pb.getCameraImage(
-                #     IMG_WIDTH, # width
-                #     IMG_HEIGHT, # height
-                #     self.viewMatrix,
-                #     self.projectionMatrix,
-                #     lightDirection=[camera_dist, 0, camera_height+1], # light source
-                #     shadow=1, # include shadows
-                # )
+            width, height, img, depth, _ = pb.getCameraImage(
+                IMG_WIDTH,  # width
+                IMG_HEIGHT,  # height
+                self.viewMatrix,
+                self.projectionMatrix,
+                # renderer=pb.ER_BULLET_HARDWARE_OPENGL,
+                # renderer=pb.ER_TINY_RENDERER,
+                # flags=pb.ER_USE_PROJECTIVE_TEXTURE,
+                # projectiveTextureView=viewMat,
+                # projectiveTextureProj=projMat
+            )
 
-                # use projective texture, it's more robust, applies texture on all sides at once
-                viewMat = [
-                    0.642787516117096, -0.4393851161003113, 0.6275069713592529, 0.0, 0.766044557094574,
-                    0.36868777871131897, -0.5265407562255859, 0.0, -0.0, 0.8191521167755127, 0.5735764503479004,
-                    0.0, 2.384185791015625e-07, 2.384185791015625e-07, -5.000000476837158, 1.0
-                ]
-                projMat = [
-                    0.7499999403953552, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0000200271606445, -1.0,
-                    0.0, 0.0, -0.02000020071864128, 0.0
-                ]
+            img = np.asarray(img).reshape((height, width, 4))
+            depth = np.asarray(depth).reshape((height, width))
 
-                cam = pb.getDebugVisualizerCamera()
-                viewMat = cam[2]
-                projMat = cam[3]
+            if test:
+                state['viewMatrix'] = self.viewMatrix
+                state['projectionMatrix'] = self.projectionMatrix
+                # state['lightDirection'] = [camera_dist, 0, camera_height + 1]
+                state['height'] = IMG_HEIGHT
+                state['width'] = IMG_WIDTH
+                state['mjcf'] = filename
 
-                width, height, img, depth, segImg = pb.getCameraImage(
-                    IMG_WIDTH,  # width
-                    IMG_HEIGHT,  # height
-                    self.viewMatrix,
-                    self.projectionMatrix,
-                    # renderer=pb.ER_BULLET_HARDWARE_OPENGL,
-                    # renderer=pb.ER_TINY_RENDERER,
-                    # flags=pb.ER_USE_PROJECTIVE_TEXTURE,
-                    # projectiveTextureView=viewMat,
-                    # projectiveTextureProj=projMat
-                )
+                config_name = os.path.join(self.save_dir, 'config' + str(img_idx).zfill(6) + '.pkl')
+                f = open(config_name, "wb")
+                pickle.dump(state, f)
+                f.close()
 
-                img = np.asarray(img).reshape((height, width, 4))
-                depth = np.asarray(depth).reshape((height, width))
+            #depth = vertical_flip(depth)
+            real_depth = buffer_to_real(depth, 12.0, 0.1)
+            norm_depth = real_depth / 12.0
 
-                if test:
-                    state['viewMatrix'] = self.viewMatrix
-                    state['projectionMatrix'] = self.projectionMatrix
-                    state['lightDirection'] = [camera_dist, 0, camera_height + 1]
-                    state['height'] = IMG_HEIGHT
-                    state['width'] = IMG_WIDTH
-                    state['mjcf'] = filename
+            if self.masked:
+                # remove background
+                mask = norm_depth > 0.99
+                norm_depth = (1 - mask) * norm_depth
 
-                    config_name = os.path.join(self.save_dir, 'config' + str(img_idx).zfill(6) + '.pkl')
-                    f = open(config_name, "wb")
-                    pickle.dump(state, f)
-                    f.close()
+            if self.debugging:
+                # save image to disk for visualization
+                # img = cv2.resize(img, (IMG_WIDTH,IMG_HEIGHT))
 
-                #depth = vertical_flip(depth)
-                real_depth = buffer_to_real(depth, 12.0, 0.1)
-                norm_depth = real_depth / 12.0
+                #img = vertical_flip(img)
 
-                if self.masked:
-                    # remove background
-                    mask = norm_depth > 0.99
-                    norm_depth = (1 - mask) * norm_depth
+                img = white_bg(img)  # TODO
+                imgfname = os.path.join(self.save_dir, 'img' + str(img_idx).zfill(6) + '.png')
+                depth_imgfname = os.path.join(self.save_dir, 'depth_img' + str(img_idx).zfill(6) + '.png')
+                integer_depth = norm_depth * 255
+                cv2.imwrite(imgfname, img)
+                cv2.imwrite(depth_imgfname, integer_depth)
 
-                if self.debugging:
-                    # save image to disk for visualization
-                    # img = cv2.resize(img, (IMG_WIDTH,IMG_HEIGHT))
+            # if IMG_WIDTH != 192 or IMG_HEIGHT != 108:
+            #     depth = cv2.resize(norm_depth, (192,108))
 
-                    #img = vertical_flip(img)
+            if joint_index is None:
+                raise Exception("Joint index not defined! Are you simulating a 2DOF object? (Don't do that yet)")
 
-                    img = white_bg(img)
-                    imgfname = os.path.join(self.save_dir, 'img' + str(img_idx).zfill(6) + '.png')
-                    depth_imgfname = os.path.join(self.save_dir, 'depth_img' + str(img_idx).zfill(6) + '.png')
-                    integer_depth = norm_depth * 255
-                    cv2.imwrite(imgfname, img)
-                    cv2.imwrite(depth_imgfname, integer_depth)
+            large_door_joint_info = pb.getJointInfo(obj_id, joint_index)
+            p = np.array(list(large_door_joint_info[14]))
+            l = np.array(list(large_door_joint_info[13]))
+            m = np.cross(large_door_joint_info[14], large_door_joint_info[13])
 
-                # if IMG_WIDTH != 192 or IMG_HEIGHT != 108:
-                #     depth = cv2.resize(norm_depth, (192,108))
+            depthfname = os.path.join(self.save_dir, 'depth' + str(img_idx).zfill(6) + '.pt')
+            torch.save(torch.tensor(norm_depth.copy()), depthfname)
+            row = np.concatenate((np.array([obj.name, obj.joint_type, img_idx]), l, m))  # SAVE SCREW REPRESENTATION HERE
+            writer.writerow(row)
 
-                if joint_index is None:
-                    raise Exception("Joint index not defined! Are you simulating a 2DOF object? (Don't do that yet)")
+            if video:
+                increments = {j: 0 for j in range(pb.getNumJoints(obj_id))}
+                videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(img_idx).zfill(6))
+                os.makedirs(videoFolderFname, exist_ok=False)
+                for frame_idx in range(90):
+                    for j in range(pb.getNumJoints(obj_id)):
+                        pb.resetJointState(obj_id, j, increments[j])
+                        increments[j] += obj.control[j] / 90
 
-                large_door_joint_info = pb.getJointInfo(obj_id, joint_index)
-                p = np.array(list(large_door_joint_info[14]))
-                l = np.array(list(large_door_joint_info[13]))
-                m = np.cross(large_door_joint_info[14], large_door_joint_info[13])
+                    _, _, rgbFrame, depthFrame, _ = pb.getCameraImage(
+                        IMG_WIDTH,  # width
+                        IMG_HEIGHT,  # height
+                        self.viewMatrix,
+                        self.projectionMatrix,
+                        lightDirection=[camera_dist, 0, camera_height + 1],  # light source
+                        shadow=1,  # include shadows
+                    )
 
-                depthfname = os.path.join(self.save_dir, 'depth' + str(img_idx).zfill(6) + '.pt')
-                torch.save(torch.tensor(norm_depth.copy()), depthfname)
-                row = np.concatenate((np.array([obj.name, obj.joint_type, img_idx]), l, m))  # SAVE SCREW REPRESENTATION HERE
-                writer.writerow(row)
+                    frameRgbFname = os.path.join(videoFolderFname, 'rgb_frame_' + str(frame_idx).zfill(6) + '.png')
+                    rgbFrame = white_bg(rgbFrame)
+                    cv2.imwrite(frameRgbFname, rgbFrame)
+                    frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_' + str(frame_idx).zfill(6) + '.pt')
+                    real_depth = buffer_to_real(depthFrame, 12.0, 0.1)
+                    norm_depth = real_depth / 12.0
 
-                if video:
-                    increments = {j: 0 for j in range(pb.getNumJoints(obj_id))}
-                    videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(img_idx).zfill(6))
-                    os.makedirs(videoFolderFname, exist_ok=False)
-                    for frame_idx in range(90):
-                        for j in range(pb.getNumJoints(obj_id)):
-                            pb.resetJointState(obj_id, j, increments[j])
-                            increments[j] += obj.control[j] / 90
+                    if self.masked:
+                        # remove background
+                        mask = norm_depth > 0.99
+                        norm_depth = (1 - mask) * norm_depth
 
-                        _, _, rgbFrame, depthFrame, _ = pb.getCameraImage(
-                            IMG_WIDTH,  # width
-                            IMG_HEIGHT,  # height
-                            self.viewMatrix,
-                            self.projectionMatrix,
-                            lightDirection=[camera_dist, 0, camera_height + 1],  # light source
-                            shadow=1,  # include shadows
-                        )
+                    torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
 
-                        frameRgbFname = os.path.join(videoFolderFname, 'rgb_frame_' + str(frame_idx).zfill(6) + '.png')
-                        rgbFrame = white_bg(rgbFrame)
-                        cv2.imwrite(frameRgbFname, rgbFrame)
-                        frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_' + str(frame_idx).zfill(6) + '.pt')
-                        real_depth = buffer_to_real(depthFrame, 12.0, 0.1)
-                        norm_depth = real_depth / 12.0
-
-                        if self.masked:
-                            # remove background
-                            mask = norm_depth > 0.99
-                            norm_depth = (1 - mask) * norm_depth
-
-                        torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
-
-                img_idx += 1
+            img_idx += 1
+            time.sleep(0.1)
