@@ -118,8 +118,8 @@ def sample_quat():
 
 
 def sample_pose():
-    xyz = pyro.sample('origin', dist.Uniform(torch.tensor([1.0, -0.5, -0.7]), torch.tensor([2.0, 0.5, 0.3]))).numpy()
-    angle = pyro.sample('angle', dist.Uniform(3 / 4 * np.pi, 5 / 4 * np.pi)).item()
+    xyz = pyro.sample('origin', dist.Uniform(torch.tensor([-0.3, -0.3, -0.3]), torch.tensor([0.3, 0.3, 0.3]))).numpy()
+    angle = pyro.sample('angle', dist.Uniform(-1 / 4 * np.pi, 1 / 4 * np.pi)).item()
     return xyz, angle
 
 

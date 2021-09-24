@@ -10,10 +10,10 @@ from generation.utils import (angle_to_quat, get_cam_params,
                               make_single_string, make_string, sample_pose,
                               sample_quat)
 
-d_len = dist.Uniform(10 / 2 * 0.0154, 22 / 2 * 0.0154)
-d_width = dist.Uniform(16 / 2 * 0.0154, 30 / 2 * 0.0154)
-d_height = dist.Uniform(9 / 2 * 0.0154, 18 / 2 * 0.0154)
-d_thic = dist.Uniform(0.01 / 2, 0.02 / 2)
+d_len = dist.Uniform(10 / 2 * 0.0254, 22 / 2 * 0.0254)
+d_width = dist.Uniform(16 / 2 * 0.0254, 30 / 2 * 0.0254)
+d_height = dist.Uniform(9 / 2 * 0.0254, 18 / 2 * 0.0254)
+d_thic = dist.Uniform(0.01 / 2, 0.03 / 2)
 
 
 def sample_microwave(mean_flag):

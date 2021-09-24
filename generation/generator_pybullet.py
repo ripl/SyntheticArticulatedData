@@ -35,14 +35,14 @@ pb.setRealTimeSimulation(True)
 
 
 def white_bg(img):
-    mask = 1 - (img > 0)
+    mask = img == 0
     img_cp = copy.deepcopy(img)
     img_cp[mask.all(axis=2)] = [255, 255, 255, 0]
     return img_cp
 
 
-def buffer_to_real(z, zfar, znear):
-    return 2 * zfar * znear / (zfar + znear - (zfar - znear) * (2 * z - 1))
+def buffer_to_real(d, d_far, d_near):
+    return d_far * d_near / (d_far - (d_far - d_near) * d)
 
 
 def vertical_flip(img):
@@ -73,12 +73,15 @@ class SceneGenerator():
             cameraUpVector=[0, 0, 1]
         )
 
+        self.d_near = 0.1
+        self.d_far = 8.1
+
         # Camera internal settings
         self.projectionMatrix = pb.computeProjectionMatrixFOV(
             fov=45.,
             aspect=1.0,
-            nearVal=0.1,
-            farVal=8.1
+            nearVal=self.d_near,
+            farVal=self.d_far
         )
 
     def write_urdf(self, filename, xml):
@@ -90,19 +93,19 @@ class SceneGenerator():
             l, w, h, t, left, _ = sample_microwave(mean_flag)
             if mean_flag:
                 obj = build_microwave(l, w, h, t, left,
-                                      set_pos=[1.0, 0.0, -0.15],
-                                      set_rot=[0.0, 0.0, 0.0, 1.0])
+                                      set_pos=[0.0, 0.0, 0.0],
+                                      set_rot=[1.0, 0.0, 0.0, 0.0])
             elif cute_flag:
                 _, base_angle = sample_pose()
                 base_quat = angle_to_quat(base_angle)
                 obj = build_microwave(l, w, h, t, left,
-                                      set_pos=[1.0, 0.0, -0.15],
+                                      set_pos=[0.0, 0.0, 0.0],
                                       set_rot=base_quat)
             else:
                 obj = build_microwave(l, w, h, t, left)
 
-            camera_dist = max(1.25, 2 * math.log(10 * h))
-            camera_height = h / 2.
+            camera_dist = 2
+            camera_height = h
 
         elif obj_type == 'drawer':
             l, w, h, t, left, mass = sample_drawers(mean_flag)
@@ -225,6 +228,7 @@ class SceneGenerator():
                 self.take_images(fname, obj, camera_dist, camera_height, obj.joint_index, writ, test=test, video=video)
 
     def take_images(self, filename, obj, camera_dist, camera_height, joint_index, writer, img_idx=0, debug=False, test=False, video=False):
+        # TODO: img_idx should be tracked across different samples so that they won't overwrite previous ones
         obj_id, _ = pb.loadMJCF(filename)
 
         # create normal texture image
@@ -254,8 +258,9 @@ class SceneGenerator():
             color = colors[idx + 1]
             pb.changeVisualShape(obj_id, idx, textureUniqueId=texture_id, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
 
-        theta = np.random.uniform(low=-np.pi / 3, high=np.pi / 3)
-        cameraEyePosition = np.array([camera_dist * np.cos(theta), camera_dist * np.sin(theta), 1])
+        # theta = np.random.uniform(low=-np.pi / 3, high=np.pi / 3)
+        # cameraEyePosition = np.array([camera_dist * np.cos(theta), camera_dist * np.sin(theta), 1])
+        cameraEyePosition = np.array([camera_dist, 0, camera_height + 1])
         cameraUpVector = np.array([0, 0, 1])
         self.viewMatrix = pb.computeViewMatrix(
             cameraEyePosition=cameraEyePosition,
@@ -263,14 +268,14 @@ class SceneGenerator():
             cameraUpVector=cameraUpVector
         )
 
-        startPos = [0, 0, 0]
-        state = {'startPos': startPos, 'eulerOrientation': [], 'joints': [], 'joint_index': joint_index, 'img_idx': img_idx}
+        # startPos = [0, 0, 0]
+        # state = {'startPos': startPos, 'eulerOrientation': [], 'joints': [], 'joint_index': joint_index, 'img_idx': img_idx}
         # obj_rotation = np.random.uniform(-np.pi/4.,np.pi/4.)
-        obj_rotation = 0
-        startOrientation = pb.getQuaternionFromEuler([0, 0, obj_rotation])
-        state['eulerOrientation'] = [0, 0, obj_rotation]
+        # obj_rotation = 0
+        # startOrientation = pb.getQuaternionFromEuler([0, 0, obj_rotation])
+        # state['eulerOrientation'] = [0, 0, obj_rotation]
 
-        pb.resetBasePositionAndOrientation(obj_id, startPos, startOrientation)
+        # pb.resetBasePositionAndOrientation(obj_id, startPos, startOrientation)
         pb.setJointMotorControl2(obj_id, joint_index, controlMode=pb.VELOCITY_CONTROL, targetVelocity=-1, force=500)
         # Take 16 pictures, permuting orientation and joint extension
         for t in range(32):
@@ -319,27 +324,27 @@ class SceneGenerator():
             img = np.asarray(img).reshape((height, width, 4))
             depth = np.asarray(depth).reshape((height, width))
 
-            if test:
-                state['viewMatrix'] = self.viewMatrix
-                state['projectionMatrix'] = self.projectionMatrix
-                # state['lightDirection'] = [camera_dist, 0, camera_height + 1]
-                state['height'] = IMG_HEIGHT
-                state['width'] = IMG_WIDTH
-                state['mjcf'] = filename
+            # if test:
+            #     state['viewMatrix'] = self.viewMatrix
+            #     state['projectionMatrix'] = self.projectionMatrix
+            #     # state['lightDirection'] = [camera_dist, 0, camera_height + 1]
+            #     state['height'] = IMG_HEIGHT
+            #     state['width'] = IMG_WIDTH
+            #     state['mjcf'] = filename
 
-                config_name = os.path.join(self.save_dir, 'config' + str(img_idx).zfill(6) + '.pkl')
-                f = open(config_name, "wb")
-                pickle.dump(state, f)
-                f.close()
+            #     config_name = os.path.join(self.save_dir, 'config' + str(img_idx).zfill(6) + '.pkl')
+            #     f = open(config_name, "wb")
+            #     pickle.dump(state, f)
+            #     f.close()
 
             #depth = vertical_flip(depth)
-            real_depth = buffer_to_real(depth, 12.0, 0.1)
-            norm_depth = real_depth / 12.0
+            real_depth = buffer_to_real(depth, self.d_far, self.d_near)
+            norm_depth = real_depth / self.d_far
 
             if self.masked:
-                # remove background
-                mask = norm_depth > 0.99
-                norm_depth = (1 - mask) * norm_depth
+                # set background depth to 0
+                mask = norm_depth < 0.99
+                norm_depth *= mask
 
             if self.debugging:
                 # save image to disk for visualization
@@ -347,12 +352,12 @@ class SceneGenerator():
 
                 #img = vertical_flip(img)
 
-                img = white_bg(img)  # TODO
-                imgfname = os.path.join(self.save_dir, 'img' + str(img_idx).zfill(6) + '.png')
-                depth_imgfname = os.path.join(self.save_dir, 'depth_img' + str(img_idx).zfill(6) + '.png')
+                # img = white_bg(img)  # TODO
+                img_fname = os.path.join(self.save_dir, 'img' + str(img_idx).zfill(6) + '.png')
+                depth_fname = os.path.join(self.save_dir, 'depth' + str(img_idx).zfill(6) + '.png')
                 integer_depth = norm_depth * 255
-                cv2.imwrite(imgfname, img)
-                cv2.imwrite(depth_imgfname, integer_depth)
+                cv2.imwrite(img_fname, img)
+                cv2.imwrite(depth_fname, integer_depth)
 
             # if IMG_WIDTH != 192 or IMG_HEIGHT != 108:
             #     depth = cv2.resize(norm_depth, (192,108))
@@ -365,42 +370,43 @@ class SceneGenerator():
             l = np.array(list(large_door_joint_info[13]))
             m = np.cross(large_door_joint_info[14], large_door_joint_info[13])
 
-            depthfname = os.path.join(self.save_dir, 'depth' + str(img_idx).zfill(6) + '.pt')
-            torch.save(torch.tensor(norm_depth.copy()), depthfname)
+            depth_fname = os.path.join(self.save_dir, 'depth' + str(img_idx).zfill(6) + '.pt')
+            torch.save(norm_depth, depth_fname)
             row = np.concatenate((np.array([obj.name, obj.joint_type, img_idx]), l, m))  # SAVE SCREW REPRESENTATION HERE
             writer.writerow(row)
 
-            if video:
-                increments = {j: 0 for j in range(pb.getNumJoints(obj_id))}
-                videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(img_idx).zfill(6))
-                os.makedirs(videoFolderFname, exist_ok=False)
-                for frame_idx in range(90):
-                    for j in range(pb.getNumJoints(obj_id)):
-                        pb.resetJointState(obj_id, j, increments[j])
-                        increments[j] += obj.control[j] / 90
+            # if video:
+            #     increments = {j: 0 for j in range(pb.getNumJoints(obj_id))}
+            #     videoFolderFname = os.path.join(self.save_dir, 'video_for_img_' + str(img_idx).zfill(6))
+            #     os.makedirs(videoFolderFname, exist_ok=False)
+            #     for frame_idx in range(90):
+            #         for j in range(pb.getNumJoints(obj_id)):
+            #             pb.resetJointState(obj_id, j, increments[j])
+            #             increments[j] += obj.control[j] / 90
 
-                    _, _, rgbFrame, depthFrame, _ = pb.getCameraImage(
-                        IMG_WIDTH,  # width
-                        IMG_HEIGHT,  # height
-                        self.viewMatrix,
-                        self.projectionMatrix,
-                        lightDirection=[camera_dist, 0, camera_height + 1],  # light source
-                        shadow=1,  # include shadows
-                    )
+            #         _, _, rgbFrame, depthFrame, _ = pb.getCameraImage(
+            #             IMG_WIDTH,  # width
+            #             IMG_HEIGHT,  # height
+            #             self.viewMatrix,
+            #             self.projectionMatrix,
+            #             lightDirection=[camera_dist, 0, camera_height + 1],  # light source
+            #             shadow=1,  # include shadows
+            #         )
 
-                    frameRgbFname = os.path.join(videoFolderFname, 'rgb_frame_' + str(frame_idx).zfill(6) + '.png')
-                    rgbFrame = white_bg(rgbFrame)
-                    cv2.imwrite(frameRgbFname, rgbFrame)
-                    frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_' + str(frame_idx).zfill(6) + '.pt')
-                    real_depth = buffer_to_real(depthFrame, 12.0, 0.1)
-                    norm_depth = real_depth / 12.0
+            #         frameRgbFname = os.path.join(videoFolderFname, 'rgb_frame_' + str(frame_idx).zfill(6) + '.png')
+            #         rgbFrame = white_bg(rgbFrame)
+            #         cv2.imwrite(frameRgbFname, rgbFrame)
+            #         frameDepthFname = os.path.join(videoFolderFname, 'depth_frame_' + str(frame_idx).zfill(6) + '.pt')
+            #         real_depth = buffer_to_real(depthFrame, 12.0, 0.1)
+            #         norm_depth = real_depth / 12.0
 
-                    if self.masked:
-                        # remove background
-                        mask = norm_depth > 0.99
-                        norm_depth = (1 - mask) * norm_depth
+            #         if self.masked:
+            #             # remove background
+            #             mask = norm_depth > 0.99
+            #             norm_depth = (1 - mask) * norm_depth
 
-                    torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
+            #         torch.save(torch.tensor(norm_depth.copy()), frameDepthFname)
 
             img_idx += 1
-            time.sleep(0.1)
+            # time.sleep(0.05)
+        pb.removeBody(obj_id)
