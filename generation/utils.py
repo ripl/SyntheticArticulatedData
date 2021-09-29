@@ -54,7 +54,7 @@ def make_quat_string(quat):
 
 def get_cam_relative_params(obj):
     obj_position = obj.pos
-    obj_angle = np.pi15926 - obj.rot
+    obj_angle = np.pi - obj.rot
     obj_axis = [0, 0, 1]
 
     obj_rot_matrix = tf3d.axangles.axangle2mat(obj_axis, obj_angle)

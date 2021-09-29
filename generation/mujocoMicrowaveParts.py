@@ -1,14 +1,11 @@
 import numpy as np
 import pyro
 import pyro.distributions as dist
-import torch
-import transforms3d as tf3d
 
-from generation.ArticulatedObjs import ArticulatedObject, Microwave
+from generation.ArticulatedObjs import ArticulatedObject
 from generation.utils import (angle_to_quat, get_cam_params,
                               get_cam_relative_params2, make_quat_string,
-                              make_single_string, make_string, sample_pose,
-                              sample_quat)
+                              make_single_string, make_string, sample_pose)
 
 d_len = dist.Uniform(10 / 2 * 0.0254, 22 / 2 * 0.0254)
 d_width = dist.Uniform(16 / 2 * 0.0254, 30 / 2 * 0.0254)
@@ -235,6 +232,5 @@ def test():
 
 if __name__ == "__main__":
     from mujoco_py import MjSim, MjViewer, load_model_from_xml
-    from mujoco_py.modder import TextureModder
     for i in range(200):
         test()
