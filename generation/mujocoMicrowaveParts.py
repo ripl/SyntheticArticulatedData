@@ -71,38 +71,22 @@ def build_microwave(length, width, height, thic, left, set_pos=None, set_rot=Non
     keypad_origin = make_string((thic, width * 0.75 - thic, height))
 
     hinge_origin = make_string((length, -width, height))
-    hinge_range = '"-2.3 0"'    # TODO
+    hinge_range = '"-2.3 0"'
     door_origin = make_string((0.0, width * 0.75, 0.0))
 
     HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT = const_handle(height)
     handle_origin = make_string((HANDLE_LEN + thic, width * 1.25, 0))
     handle_size = make_string((HANDLE_LEN, HANDLE_WIDTH, HANDLE_HEIGHT))
 
-    znear, zfar, fovy = get_cam_params()
-    znear_str = make_single_string(znear)
-    zfar_str = make_single_string(zfar)
-    fovy_str = make_single_string(fovy)
-
     geometry = np.array([length, width, height, left])  # length = 4
     parameters = np.array([[length, -width, height], [0.0, width, 0.0]])  # shape = 2*3, length = 6
     cab = ArticulatedObject(0, geometry, parameters, '', base_xyz, base_quat)
 
-    post_params = get_cam_relative_params2(cab)
-    axis = post_params[:3]
-    axquat = post_params[3:7]
-    ax_string = make_string(tuple(axis))
-    axquat_string = make_quat_string(axquat)
+    xml = write_xml(base_origin, base_orientation, base_size, left_origin,
+                    right_origin, side_size, top_origin, top_size, back_origin,
+                    back_size, keypad_origin, keypad_size, hinge_origin, hinge_range,
+                    door_origin, door_size, handle_origin, handle_size)
 
-    xml = write_xml(ax_string, axquat_string, base_origin, base_orientation, base_size,
-                    left_origin, right_origin, side_size,
-                    top_origin, top_size,
-                    back_origin, back_size,
-                    keypad_origin, keypad_size,
-                    hinge_origin, hinge_range,
-                    door_origin, door_size, handle_origin, handle_size,
-                    znear_str, zfar_str, fovy_str)
-
-    cab.control = [0, 0, 0, 0, 0, -2, 0, 0]
     cab.joint_index = 5
     cab.name = 'microwave'
     cab.joint_type = 'revolute'
@@ -110,108 +94,42 @@ def build_microwave(length, width, height, thic, left, set_pos=None, set_rot=Non
     return cab
 
 
-def write_xml(ax_string, axquat_string, base_origin, base_orientation, base_size,
-              left_origin, right_origin, side_size,
-              top_origin, top_size,
-              back_origin, back_size,
-              keypad_origin, keypad_size,
-              hinge_origin, hinge_range,
-              door_origin, door_size, handle_origin, handle_size,
-              znear, zfar, fovy):
+def write_xml(base_origin, base_orientation, base_size, left_origin,
+              right_origin, side_size, top_origin, top_size, back_origin,
+              back_size, keypad_origin, keypad_size, hinge_origin, hinge_range,
+              door_origin, door_size, handle_origin, handle_size):
     return '''
-<mujoco model="cabinet">
-    <compiler angle="radian" eulerseq='zxy'/>
-    <option gravity="0 0 0"/>
-    <option>
-        <flag contact="disable"/>
-    </option>
-    <statistic extent="1.0" center="0.0 0.0 0.0"/>
-    <visual>
-        <map fogstart="3" fogend="5" force="0.1" znear=''' + znear + ''' zfar=''' + zfar + '''/>
-    </visual>
-    <size njmax="500" nconmax="100"/>
-    <actuator>
-        <velocity joint="bottom_left_hinge" name="viva_revolution" kv='10'></velocity>
-        <!--position joint="bottom_left_hinge" name="viva_la_position" kp='10'></position-->
-        <!--velocity joint="cam_j" name="moving_cam" kv="10"></velocity-->
-    </actuator>
-    <asset>
-        <texture builtin="flat" name="tabletex" height="32" width="32" rgb1="1 1 1" type="cube"></texture>
-        <texture builtin="flat" name="objtex" height="32" width="32" rgb1="1 1 1" type="cube"></texture>
-        <texture builtin="flat" height="1278" mark="cross" markrgb="1 1 1" name="texgeom" random="0.01" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" type="cube" width="127"/>
-        <texture builtin="flat" name="handletex" height="32" width="32" rgb1="1 1 1" type="cube"></texture>
-        <texture builtin="flat" name="wallpaper" height="32" width="32" rgb1="1 0 0" type="cube"></texture>
-        <texture builtin="flat" name="kp" height="32" width="32" rgb1="1 1 1" type="cube"></texture>
-        <material name="geomTable" shininess="0.03" specular="0.75" texture="tabletex"></material>
-        <material name="geomObj" shininess="0.03" specular="0.75" texture="texgeom"></material>
-        <material name="geomHandle" shininess="0.03" specular="0.75" texture="handletex"></material>
-        <material name="ax" shininess="0.03" specular="0.75" texture="wallpaper"></material>
-        <material name="bg" shininess="0.03" specular="0.75" texture="wallpaper"></material>
-        <material name="geomKeypad" shininess="0.03" specular="0.75" texture="kp"></material>
-    </asset>
+<mujoco model="Microwave Oven">
+    <compiler angle="radian"/>
     <worldbody>
-        <body name="cabinet_bottom" pos=''' + base_origin + ''' quat=''' + base_orientation + '''>
+        <body name="bottom" pos=''' + base_origin + ''' quat=''' + base_orientation + '''>
             <inertial pos="0 0 0" mass="0" diaginertia="1 1 1"/>
-            <geom size=''' + base_size + ''' type="box" material="geomObj" name="b"/>
-            <body name="cabinet_left" pos=''' + left_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-                <geom size=''' + side_size + ''' type="box" material="geomObj" name="c"/>
+            <geom size=''' + base_size + ''' type="box"/>
+            <body name="left" pos=''' + left_origin + '''>
+                <geom size=''' + side_size + ''' type="box"/>
             </body>
-            <body name="cabinet_right" pos=''' + right_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-                <geom size=''' + side_size + ''' type="box" material="geomObj" name="d"/>
+            <body name="right" pos=''' + right_origin + '''>
+                <geom size=''' + side_size + ''' type="box"/>
             </body>
-            <body name="cabinet_top" pos=''' + top_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-                <geom size=''' + top_size + ''' type="box" material="geomObj" name="e"/>
+            <body name="top" pos=''' + top_origin + '''>
+                <geom size=''' + top_size + ''' type="box"/>
             </body>
-            <body name="cabinet_back" pos=''' + back_origin + ''' >
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-                <geom size=''' + back_size + ''' type="box" material="geomObj" name="f"/>
+            <body name="back" pos=''' + back_origin + ''' >
+                <geom size=''' + back_size + ''' type="box"/>
             </body>
-            <body name="cabinet_keypad" pos=''' + keypad_origin + '''>
-                <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-                <geom size=''' + keypad_size + ''' type="box" material="geomKeypad" name="keypizzlemynizzle"/>
+            <body name="keypad" pos=''' + keypad_origin + '''>
+                <geom size=''' + keypad_size + ''' type="box"/>
             </body>
-            <body name="cabinet_left_hinge" pos=''' + hinge_origin + '''>
-                <inertial pos=''' + door_origin + ''' mass="1" diaginertia="1 1 1"/>
-                <joint name="bottom_left_hinge" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range=''' + hinge_range + '''/>
-                <geom size=''' + door_size + ''' pos=''' + door_origin + ''' type="box" material="geomObj" name="g"/>
-                <body name="handle_link" pos=''' + handle_origin + '''>
-                    <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-                    <geom size=''' + handle_size + ''' type="box" material="geomHandle" name="h"/>
+            <body name="hinge" pos=''' + hinge_origin + '''>
+                <joint type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range=''' + hinge_range + '''/>
+                <body name="door" pos=''' + door_origin + '''>
+                    <geom size=''' + door_size + ''' type="box"/>
+                </body>
+                <body name="handle" pos=''' + handle_origin + '''>
+                    <geom size=''' + handle_size + ''' type="box"/>
                 </body>
             </body>
         </body>
-        <body name="external_camera_body_0" pos="0 0 0">
-            <camera euler="-1.57 1.57 0.0" fovy=''' + fovy + ''' name="external_camera_0" pos="0 0 0"></camera>
-            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"/>
-            <joint name="cam_j" pos="0 0 0" axis="1 0 0" type="free"/>
-        </body>
-        <!--body name="TESTING" pos=''' + ax_string + ''' quat=''' + axquat_string + '''>
-            <geom size="0.025" type="sphere" rgba="1 1 1 1"/>
-            <body name="x_axis">
-                <geom size="0.01" fromto="0 0 0 0.2 0 0" type="cylinder" rgba="1 0 0 1"/>
-            </body>
-            <body name="y_axis">
-                <geom size="0.01" fromto="0 0 0 0 0.2 0" type="cylinder" rgba="0 1 0 1"/>
-            </body>
-            <body name="z_axis">
-                <geom size="0.01" fromto="0 0 0 0 0 0.2" type="cylinder" rgba="0 0 1 1"/>
-            </body>
-        </body-->
-        <!--body name="TESTING" pos=''' + ax_string + ''' quat=''' + axquat_string + '''>
-            <geom size="0.05" type="sphere" rgba="1 1 1 1"/>
-            <body name="x_axis" pos="0.1 0 0.00">
-                <geom size="0.1 0.01 0.01" type="box" rgba="1 0 0 1"/>
-            </body>
-            <body name="y_axis" pos="0.0 0.1 0.00">
-                <geom size="0.01 0.1 0.01" type="box" rgba="0 1 0 1"/>
-            </body>
-            <body name="z_axis" pos="0.0 0 0.1">
-                <geom size="0.01 0.01 0.1" type="box" rgba="0 0 1 1"/>
-            </body>
-        </body-->
     </worldbody>
 </mujoco>'''
 

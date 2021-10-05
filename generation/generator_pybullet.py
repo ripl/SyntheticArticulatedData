@@ -1,4 +1,3 @@
-import copy
 import csv
 import math
 import os
@@ -74,7 +73,7 @@ class SceneGenerator():
             else:
                 obj = build_microwave(l, w, h, t, left)
 
-            camera_dist = 2
+            camera_dist = 2.5
             target_height = h
 
         elif obj_type == 'drawer':
@@ -178,7 +177,7 @@ class SceneGenerator():
             raise 'uh oh, object not implemented!'
         return obj, camera_dist, target_height
 
-    def generate_scenes(self, N, obj_type, mean_flag=False, left_only=False, cute_flag=False, test=False, video=False):
+    def generate_scenes(self, N, obj_type, mean_flag=False, left_only=False, cute_flag=False, test=False):
         self.save_dir = os.path.join(self.root_dir, obj_type)
         if test:
             self.save_dir += '-test'
@@ -195,10 +194,10 @@ class SceneGenerator():
                 fname = os.path.join(self.save_dir, 'scene' + str(i).zfill(6) + '.xml')
                 self.write_urdf(fname, obj.xml)
                 self.scenes.append(fname)
-                self.take_images(fname, obj, camera_dist, target_height, obj.joint_index, writ, i, test=test, video=video)
+                self.take_images(fname, obj, camera_dist, target_height, obj.joint_index, writ, i)
 
-    def take_images(self, filename, obj, camera_dist, target_height, joint_index, writer, obj_no, test=False, video=False):
-        obj_id, _ = pb.loadMJCF(filename)
+    def take_images(self, filename, obj, camera_dist, target_height, joint_index, writer, obj_no):
+        obj_id = pb.loadMJCF(filename)[0]
 
         # create normal texture image
         # x, y = np.meshgrid(np.linspace(-1, 1, 1280), np.linspace(-1, 1, 1280))
@@ -233,8 +232,10 @@ class SceneGenerator():
             cameraUpVector=np.array([0, 0, 1])
         )
 
-        pb.setJointMotorControl2(obj_id, joint_index, controlMode=pb.VELOCITY_CONTROL, targetVelocity=-0.4, force=500)
-        for img_idx in range(32):
+        pb.setJointMotorControl2(obj_id, joint_index, controlMode=pb.VELOCITY_CONTROL, targetVelocity=-0.4, force=1000)
+        img_idx = 0
+        t = None
+        while True:
             str_id = f'{obj_no:02}_{img_idx:04}'
             width, height, img, depth, _ = pb.getCameraImage(
                 calibrations.sim_width,
@@ -277,5 +278,10 @@ class SceneGenerator():
 
             depth_fname = os.path.join(self.save_dir, f'depth{str_id}.pt')
             torch.save(norm_depth, depth_fname)
+
+            if t is not None and abs(joint_state - t) < 1e-3:
+                break
+            t = joint_state
+            img_idx += 1
 
         pb.removeBody(obj_id)

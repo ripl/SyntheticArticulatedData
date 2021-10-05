@@ -15,10 +15,10 @@ def main(args):
 
     if not args.eval_only:
         # generate train scenes
-        scene_gen.generate_scenes(args.n, args.obj, mean_flag=args.mean, left_only=args.left_only, cute_flag=args.cute, video=args.video)
+        scene_gen.generate_scenes(args.n, args.obj, mean_flag=args.mean, left_only=args.left_only, cute_flag=args.cute)
 
     # generate test scenes
-    scene_gen.generate_scenes(args.n // 10, args.obj, test=True, video=args.video)
+    scene_gen.generate_scenes(args.n // 10, args.obj, test=True)
 
     # generate visualization for sanity
     if not args.pybullet and args.debug:
