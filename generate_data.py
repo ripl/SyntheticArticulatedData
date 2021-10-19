@@ -1,5 +1,6 @@
 import argparse
 import os
+
 from generation.inspect_data import make_animations
 
 

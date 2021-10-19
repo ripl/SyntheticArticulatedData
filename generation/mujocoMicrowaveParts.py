@@ -3,9 +3,8 @@ import pyro
 import pyro.distributions as dist
 
 from generation.ArticulatedObjs import ArticulatedObject
-from generation.utils import (angle_to_quat, get_cam_params,
-                              get_cam_relative_params2, make_quat_string,
-                              make_single_string, make_string, sample_pose)
+from generation.utils import (angle_to_quat, make_quat_string, make_string,
+                              sample_pose)
 
 d_len = dist.Uniform(10 / 2 * 0.0254, 22 / 2 * 0.0254)
 d_width = dist.Uniform(16 / 2 * 0.0254, 30 / 2 * 0.0254)

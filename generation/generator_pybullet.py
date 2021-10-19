@@ -16,7 +16,8 @@ from generation.mujocoCabinetParts import build_cabinet, sample_cabinet
 from generation.mujocoDoubleCabinetParts import build_cabinet2, sample_cabinet2
 from generation.mujocoDrawerParts import build_drawer, sample_drawers
 from generation.mujocoMicrowaveParts import build_microwave, sample_microwave
-from generation.mujocoRefrigeratorParts import build_refrigerator, sample_refrigerator
+from generation.mujocoRefrigeratorParts import (build_refrigerator,
+                                                sample_refrigerator)
 from generation.mujocoToasterOvenParts import build_toaster, sample_toaster
 from generation.utils import *
 
@@ -194,9 +195,14 @@ class SceneGenerator():
                 fname = os.path.join(self.save_dir, 'scene' + str(i).zfill(6) + '.xml')
                 self.write_urdf(fname, obj.xml)
                 self.scenes.append(fname)
-                self.take_images(fname, obj, camera_dist, target_height, obj.joint_index, writ, i)
+                viewMatrix = pb.computeViewMatrix(
+                    cameraEyePosition=[camera_dist, 0, target_height + 1],
+                    cameraTargetPosition=[0, 0, target_height],
+                    cameraUpVector=[0, 0, 1]
+                )
+                self.take_images(fname, obj, viewMatrix, obj.joint_index, writ, i)
 
-    def take_images(self, filename, obj, camera_dist, target_height, joint_index, writer, obj_no):
+    def take_images(self, filename, obj, viewMatrix, joint_index, writer, obj_no):
         obj_id = pb.loadMJCF(filename)[0]
 
         # create normal texture image
@@ -225,12 +231,6 @@ class SceneGenerator():
                 continue
             color = colors[idx + 1]
             pb.changeVisualShape(obj_id, idx, textureUniqueId=texture_id, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
-
-        viewMatrix = pb.computeViewMatrix(
-            cameraEyePosition=np.array([camera_dist, 0, target_height + 1]),
-            cameraTargetPosition=[0, 0, target_height],
-            cameraUpVector=np.array([0, 0, 1])
-        )
 
         pb.setJointMotorControl2(obj_id, joint_index, controlMode=pb.VELOCITY_CONTROL, targetVelocity=-0.4, force=1000)
         img_idx = 0
