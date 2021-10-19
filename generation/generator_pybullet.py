@@ -5,6 +5,7 @@ from shutil import rmtree
 
 import cv2
 import numpy as np
+from numpy.random.mtrand import rand
 import pybullet as pb
 import torch
 import transforms3d as tf3d
@@ -30,7 +31,7 @@ def buffer_to_real(d, d_far, d_near):
 
 
 class SceneGenerator():
-    def __init__(self, root_dir, masked=False, debug_flag=False):
+    def __init__(self, root_dir, mode, masked=False, debug_flag=False):
         '''
         Class for generating simulated articulated object dataset.
         params:
@@ -40,6 +41,7 @@ class SceneGenerator():
         '''
         self.scenes = []
         self.root_dir = root_dir
+        self.mode = mode
         self.masked = masked
         self.debugging = debug_flag
 
@@ -195,14 +197,9 @@ class SceneGenerator():
                 fname = os.path.join(self.save_dir, 'scene' + str(i).zfill(6) + '.xml')
                 self.write_urdf(fname, obj.xml)
                 self.scenes.append(fname)
-                viewMatrix = pb.computeViewMatrix(
-                    cameraEyePosition=[camera_dist, 0, target_height + 1],
-                    cameraTargetPosition=[0, 0, target_height],
-                    cameraUpVector=[0, 0, 1]
-                )
-                self.take_images(fname, obj, viewMatrix, obj.joint_index, writ, i)
+                self.take_images(fname, obj, camera_dist, target_height, obj.joint_index, writ, i)
 
-    def take_images(self, filename, obj, viewMatrix, joint_index, writer, obj_no):
+    def take_images(self, filename, obj, camera_dist, target_height, joint_index, writer, obj_no, n_frames=64):
         obj_id = pb.loadMJCF(filename)[0]
 
         # create normal texture image
@@ -232,11 +229,32 @@ class SceneGenerator():
             color = colors[idx + 1]
             pb.changeVisualShape(obj_id, idx, textureUniqueId=texture_id, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
 
-        pb.setJointMotorControl2(obj_id, joint_index, controlMode=pb.VELOCITY_CONTROL, targetVelocity=-0.4, force=1000)
-        img_idx = 0
-        t = None
-        while True:
-            str_id = f'{obj_no:02}_{img_idx:04}'
+        for i in range(n_frames):
+            if self.mode == 1:
+                if not i:
+                    viewMatrix = pb.computeViewMatrix(
+                        cameraEyePosition=[camera_dist, 0, target_height * 6],
+                        cameraTargetPosition=[0, 0, target_height],
+                        cameraUpVector=[0, 0, 1]
+                    )
+                pb.resetJointState(obj_id, joint_index, -2.3 * i / n_frames)
+            else:
+                if not i:
+                    pb.resetJointState(obj_id, joint_index, np.random.uniform(-2.3, 0))
+                    d_jit = np.random.uniform(-0.5, 0.5)
+                    theta_s = np.random.uniform(-1 / 3, 1 / 3) * np.pi
+                    eye_h_jit = np.random.uniform(-0.5, 0.5)
+                    tgt_h_jit = np.random.uniform(-0.5, 0.5)
+                d = camera_dist * (1 + d_jit - 0.5 * np.sign(d_jit) * i / n_frames)
+                theta = theta_s - np.pi * 3 / 4 * i / n_frames * np.sign(theta_s)
+                eye_h = target_height * 6 * (1 + eye_h_jit - 0.5 * np.sign(eye_h_jit) * i / n_frames)
+                tgt_h = target_height * (1 + tgt_h_jit - 0.5 * np.sign(tgt_h_jit) * i / n_frames)
+                viewMatrix = pb.computeViewMatrix(
+                    cameraEyePosition=[d * np.cos(theta), d * np.sin(theta), eye_h],
+                    cameraTargetPosition=[0, 0, tgt_h],
+                    cameraUpVector=[0, 0, 1]
+                )
+            str_id = f'{obj_no:02}_{i:04}'
             width, height, img, depth, _ = pb.getCameraImage(
                 calibrations.sim_width,
                 calibrations.sim_height,
@@ -278,10 +296,5 @@ class SceneGenerator():
 
             depth_fname = os.path.join(self.save_dir, f'depth{str_id}.pt')
             torch.save(norm_depth, depth_fname)
-
-            if t is not None and abs(joint_state - t) < 1e-3:
-                break
-            t = joint_state
-            img_idx += 1
 
         pb.removeBody(obj_id)

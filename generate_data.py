@@ -10,9 +10,7 @@ def main(args):
         from generation.generator_pybullet import SceneGenerator
     else:
         from generation.generator import SceneGenerator
-    scene_gen = SceneGenerator(root_dir=args.dir,
-                               debug_flag=args.debug,
-                               masked=args.masked)
+    scene_gen = SceneGenerator(args.dir, args.mode, masked=args.masked, debug_flag=args.debug)
 
     if not args.eval_only:
         # generate train scenes
@@ -37,5 +35,5 @@ parser.add_argument('--cute', action='store_true', default=False, help='generate
 parser.add_argument('--left-only', action='store_true', default=False, help='generate only left-opening cabinets')
 parser.add_argument('--pybullet', action='store_true', default=False, help='render with PyBullet instead of MuJoCo')
 parser.add_argument('--eval-only', action='store_true', default=False, help='only generate evaluation dataset')
-parser.add_argument('--video', action='store_true', default=False, help='generate video in addition to images (in the form of png sequences)')
+parser.add_argument('--mode', type=int, choices=[1, 2], default=1, help='mode 1 generates articulated motion, mode 2 generates camera motion')
 main(parser.parse_args())
