@@ -35,5 +35,5 @@ parser.add_argument('--cute', action='store_true', default=False, help='generate
 parser.add_argument('--left-only', action='store_true', default=False, help='generate only left-opening cabinets')
 parser.add_argument('--pybullet', action='store_true', default=False, help='render with PyBullet instead of MuJoCo')
 parser.add_argument('--eval-only', action='store_true', default=False, help='only generate evaluation dataset')
-parser.add_argument('--mode', type=int, choices=[1, 2], default=1, help='mode 1 generates articulated motion, mode 2 generates camera motion')
+parser.add_argument('--mode', type=int, choices=[1, 2], default=1, help='mode 1 (default): generates articulated motion; mode 2: generates camera motion')
 main(parser.parse_args())

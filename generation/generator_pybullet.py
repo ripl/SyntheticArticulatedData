@@ -4,8 +4,8 @@ import os
 from shutil import rmtree
 
 import cv2
+import ffmpeg
 import numpy as np
-from numpy.random.mtrand import rand
 import pybullet as pb
 import torch
 import transforms3d as tf3d
@@ -298,3 +298,5 @@ class SceneGenerator():
             torch.save(norm_depth, depth_fname)
 
         pb.removeBody(obj_id)
+        if self.debugging:
+            ffmpeg.input(f'{self.save_dir}/img{obj_no:02}_%04d.png').output(f'{self.save_dir}/vid{obj_no:02}.mp4').run()
