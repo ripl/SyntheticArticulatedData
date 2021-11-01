@@ -55,6 +55,12 @@ class SceneGenerator():
             nearVal=self.d_near,
             farVal=self.d_far
         )
+        self.K = np.zeros((3, 3))
+        self.K[0, 0] = calibrations.sim_width / (2 * np.tan(45 / 360 * np.pi))
+        self.K[0, 2] = calibrations.sim_width / 2
+        self.K[1, 1] = calibrations.sim_height / (2 * np.tan(45 / 360 * np.pi))
+        self.K[1, 2] = calibrations.sim_height / 2
+        self.K[2, 2] = 1
 
     def write_urdf(self, filename, xml):
         with open(filename, "w") as text_file:
@@ -188,6 +194,7 @@ class SceneGenerator():
             rmtree(self.save_dir)
         os.makedirs(self.save_dir)
         print('Generating data in %s...' % self.save_dir)
+        np.save(os.path.join(self.save_dir, 'cam.npy'), self.K)
         fname = os.path.join(self.save_dir, 'labels.csv')
         with open(fname, 'w') as f:
             writ = csv.writer(f, delimiter=',')
