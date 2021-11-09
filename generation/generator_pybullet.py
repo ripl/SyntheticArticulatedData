@@ -22,7 +22,7 @@ from generation.mujocoRefrigeratorParts import (build_refrigerator,
 from generation.mujocoToasterOvenParts import build_toaster, sample_toaster
 from generation.utils import *
 
-pb_client = pb.connect(pb.GUI)
+pb_client = pb.connect(pb.DIRECT)
 pb.setRealTimeSimulation(True)
 
 

@@ -13,5 +13,5 @@ Setup:
 ```pip install -r requirements-bullet.txt```
 
 Example generation:  
-```python generate_data.py --n 10 --dir ./articulated_motion --obj microwave --masked --debug --pybullet --mode 1```
-```python generate_data.py --n 10 --dir ./camera_motion --obj microwave --masked --debug --pybullet --mode 2```
+```python generate_data.py --n 10 --dir ~/data/al/articulated_motion --obj microwave --masked --debug --pybullet --mode 1```
+```python generate_data.py --n 10 --dir ~/data/al/camera_motion --obj microwave --masked --debug --pybullet --mode 2```
