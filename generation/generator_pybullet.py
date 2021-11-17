@@ -3,7 +3,6 @@ import math
 import os
 from shutil import rmtree
 
-import cv2
 import ffmpeg
 import numpy as np
 import pybullet as pb
@@ -28,6 +27,22 @@ pb.setRealTimeSimulation(True)
 
 def buffer_to_real(d, d_far, d_near):
     return d_far * d_near / (d_far - (d_far - d_near) * d)
+
+
+def proj2intrinsics(proj, w, h):
+    K = np.zeros((3, 3))
+    K[0, 0] = proj[0] * w / 2
+    K[0, 2] = w / 2
+    K[1, 1] = proj[5] * h / 2
+    K[1, 2] = h / 2
+    K[2, 2] = 1
+    return K
+
+
+def view2extrinsics(view):
+    return np.array([[view[0], view[4], view[8], view[12]],
+                     [-view[1], -view[5], -view[9], -view[13]],
+                     [-view[2], -view[6], -view[10], -view[14]]])
 
 
 class SceneGenerator():
@@ -55,12 +70,7 @@ class SceneGenerator():
             nearVal=self.d_near,
             farVal=self.d_far
         )
-        self.K = np.zeros((3, 3))
-        self.K[0, 0] = calibrations.sim_width / (2 * np.tan(45 / 360 * np.pi))
-        self.K[0, 2] = calibrations.sim_width / 2
-        self.K[1, 1] = calibrations.sim_height / (2 * np.tan(45 / 360 * np.pi))
-        self.K[1, 2] = calibrations.sim_height / 2
-        self.K[2, 2] = 1
+        self.K = proj2intrinsics(self.projectionMatrix, calibrations.sim_width, calibrations.sim_height)
 
     def write_urdf(self, filename, xml):
         with open(filename, "w") as text_file:
@@ -194,7 +204,7 @@ class SceneGenerator():
             rmtree(self.save_dir)
         os.makedirs(self.save_dir)
         print('Generating data in %s...' % self.save_dir)
-        np.save(os.path.join(self.save_dir, 'cam.npy'), self.K)
+        np.save(os.path.join(self.save_dir, 'cam_intrinsics.npy'), self.K)
         fname = os.path.join(self.save_dir, 'labels.csv')
         with open(fname, 'w') as f:
             writ = csv.writer(f, delimiter=',')
@@ -208,6 +218,8 @@ class SceneGenerator():
 
     def take_images(self, filename, obj, camera_dist, target_height, joint_index, writer, obj_no, n_frames=64):
         obj_id = pb.loadMJCF(filename)[0]
+        base_pos, base_orn = pb.getBasePositionAndOrientation(obj_id)
+        base_orn = np.roll(base_orn, 1)
 
         # create normal texture image
         # x, y = np.meshgrid(np.linspace(-1, 1, 1280), np.linspace(-1, 1, 1280))
@@ -236,7 +248,9 @@ class SceneGenerator():
             color = colors[idx + 1]
             pb.changeVisualShape(obj_id, idx, textureUniqueId=texture_id, rgbaColor=color, specularColor=color, physicsClientId=pb_client)
 
+        Ts = []
         for i in range(n_frames):
+            str_id = f'{obj_no:02}_{i:04}'
             if self.mode == 1:
                 if not i:
                     viewMatrix = pb.computeViewMatrix(
@@ -244,6 +258,7 @@ class SceneGenerator():
                         cameraTargetPosition=[0, 0, target_height],
                         cameraUpVector=[0, 0, 1]
                     )
+                    Ts.append(view2extrinsics(viewMatrix))
                 pb.resetJointState(obj_id, joint_index, -2.3 * i / n_frames)
             else:
                 if not i:
@@ -261,7 +276,7 @@ class SceneGenerator():
                     cameraTargetPosition=[0, 0, tgt_h],
                     cameraUpVector=[0, 0, 1]
                 )
-            str_id = f'{obj_no:02}_{i:04}'
+                Ts.append(view2extrinsics(viewMatrix))
             width, height, img, depth, _ = pb.getCameraImage(
                 calibrations.sim_width,
                 calibrations.sim_height,
@@ -284,25 +299,28 @@ class SceneGenerator():
                 # save image to disk for visualization
                 img_fname = os.path.join(self.save_dir, f'img{str_id}.png')
                 depth_fname = os.path.join(self.save_dir, f'depth{str_id}.png')
-                integer_depth = norm_depth * 255
-                cv2.imwrite(img_fname, img)
-                cv2.imwrite(depth_fname, integer_depth)
+                integer_depth = (norm_depth * 255).astype(np.uint8)
+                Image.fromarray(img).save(img_fname)
+                Image.fromarray(integer_depth).save(depth_fname)
 
             if joint_index is None:
                 raise Exception("Joint index not defined! Are you simulating a 2DOF object? (Don't do that yet)")
 
             joint_info = pb.getJointInfo(obj_id, joint_index)
-            p = np.array(joint_info[14])
-            l = np.array(joint_info[13])
-            orn = np.roll(joint_info[15], 1)  # changes to w, x, y, z format
-            l = tf3d.quaternions.quat2mat(orn) @ l
-            m = np.cross(p, l)
+            pos = np.array(joint_info[14])    # joint position in parent frame
+            l = np.array(joint_info[13])    # joint axis in local frame (ignored for JOINT_FIXED)
+            orn = np.roll(joint_info[15], 1)  # joint orientation in parent frame (pybullet's quaternion is in x,y,z,w format); changes to w,x,y,z format, which is used by MJCF and transforms3d
+            l = tf3d.quaternions.rotate_vector(l, orn)  # joint axis in base frame
+            pos = tf3d.quaternions.rotate_vector(pos, base_orn) + base_pos
+            l = tf3d.quaternions.rotate_vector(l, base_orn)
+            m = np.cross(pos, l)
             joint_state = pb.getJointState(obj_id, joint_index)[0]
             row = np.concatenate((np.array([obj.name, obj.joint_type, str_id]), l, m, np.array([joint_state])))  # save joint's Plucker representation and state
             writer.writerow(row)
 
             depth_fname = os.path.join(self.save_dir, f'depth{str_id}.pt')
             torch.save(norm_depth, depth_fname)
+        np.save(os.path.join(self.save_dir, 'cam_extrinsics{obj_no:02}.npy'), Ts)
 
         pb.removeBody(obj_id)
         if self.debugging:

@@ -120,7 +120,7 @@ def write_xml(base_origin, base_orientation, base_size, left_origin,
                 <geom size=''' + keypad_size + ''' type="box"/>
             </body>
             <body name="hinge" pos=''' + hinge_origin + '''>
-                <joint type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range=''' + hinge_range + '''/>
+                <joint type="hinge" axis="0 0 1" limited="true" range=''' + hinge_range + '''/>
                 <body name="door" pos=''' + door_origin + '''>
                     <geom size=''' + door_size + ''' type="box"/>
                 </body>
