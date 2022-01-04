@@ -292,7 +292,7 @@ class SceneGenerator():
 
             if self.masked:
                 # set background depth to 0
-                mask = norm_depth < 0.99
+                mask = norm_depth < 0.999
                 norm_depth *= mask
 
             if self.debugging:
@@ -315,12 +315,13 @@ class SceneGenerator():
             l = tf3d.quaternions.rotate_vector(l, base_orn)
             m = np.cross(pos, l)
             joint_state = pb.getJointState(obj_id, joint_index)[0]
-            row = np.concatenate((np.array([obj.name, obj.joint_type, str_id]), l, m, np.array([joint_state])))  # save joint's Plucker representation and state
+            # row = np.concatenate((np.array([obj.name, obj.joint_type, str_id]), l, m, np.array([joint_state])))  # save joint's Plucker representation and state
+            row = np.concatenate((np.array([obj.name, obj.joint_type, str_id]), l, pos, np.array([joint_state])))  # save joint's axis-point representation and state
             writer.writerow(row)
 
             depth_fname = os.path.join(self.save_dir, f'depth{str_id}.pt')
-            torch.save(norm_depth, depth_fname)
-        np.save(os.path.join(self.save_dir, 'cam_extrinsics{obj_no:02}.npy'), Ts)
+            torch.save(norm_depth * self.d_far, depth_fname)
+        np.save(os.path.join(self.save_dir, f'cam_extrinsics{obj_no:02}.npy'), Ts)
 
         pb.removeBody(obj_id)
         if self.debugging:
